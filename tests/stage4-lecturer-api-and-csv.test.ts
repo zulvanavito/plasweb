@@ -1019,4 +1019,57 @@ describe("Tahap 4 & 6 — Endpoint Dosen (§5), Manajemen Kelas, Keamanan, CSV &
       deleted_kelas_id: KELAS_A_ID,
     });
   });
+
+  it("halaman publik OAuth Verification (/ , /privacy, /terms) & alur GIS signInWithIdToken di /login memenuhi kontrak", () => {
+    const homePagePath = path.resolve(process.cwd(), "src/app/page.tsx");
+    const privacyPagePath = path.resolve(process.cwd(), "src/app/privacy/page.tsx");
+    const termsPagePath = path.resolve(process.cwd(), "src/app/terms/page.tsx");
+    const loginPagePath = path.resolve(process.cwd(), "src/app/login/page.tsx");
+    const layoutPath = path.resolve(process.cwd(), "src/app/layout.tsx");
+    const envExamplePath = path.resolve(process.cwd(), ".env.example");
+
+    expect(fs.existsSync(homePagePath)).toBe(true);
+    expect(fs.existsSync(privacyPagePath)).toBe(true);
+    expect(fs.existsSync(termsPagePath)).toBe(true);
+
+    const homeSrc = fs.readFileSync(homePagePath, "utf8");
+    expect(homeSrc).not.toContain('redirect("/login")');
+    expect(homeSrc).toContain("PLAS");
+    expect(homeSrc).toContain("PlasAppLogo");
+    expect(homeSrc).toContain('href="/login"');
+    expect(homeSrc).toContain('href="/privacy"');
+    expect(homeSrc).toContain('href="/terms"');
+
+    const privacySrc = fs.readFileSync(privacyPagePath, "utf8");
+    expect(privacySrc).toContain("PLAS");
+    expect(privacySrc).toContain("Supabase");
+    expect(privacySrc).toContain("openid");
+    expect(privacySrc).toContain("email");
+    expect(privacySrc).toContain("profile");
+    expect(privacySrc).toContain("zavitoanwari@gmail.com");
+    expect(privacySrc).toContain('href="/"');
+    expect(privacySrc).toContain('href="/login"');
+
+    const termsSrc = fs.readFileSync(termsPagePath, "utf8");
+    expect(termsSrc).toContain("PLAS");
+    expect(termsSrc).toContain("zavitoanwari@gmail.com");
+    expect(termsSrc).toContain('href="/"');
+    expect(termsSrc).toContain('href="/login"');
+
+    const loginSrc = fs.readFileSync(loginPagePath, "utf8");
+    expect(loginSrc).toContain("https://accounts.google.com/gsi/client");
+    expect(loginSrc).toContain("signInWithIdToken");
+    expect(loginSrc).not.toContain("signInWithOAuth");
+    expect(loginSrc).toContain("SHA-256");
+    expect(loginSrc).toContain("NEXT_PUBLIC_GOOGLE_CLIENT_ID");
+    expect(loginSrc).toContain('href="/"');
+    expect(loginSrc).toContain('href="/privacy"');
+    expect(loginSrc).toContain('href="/terms"');
+
+    const layoutSrc = fs.readFileSync(layoutPath, "utf8");
+    expect(layoutSrc).toContain("PLAS");
+
+    const envExampleSrc = fs.readFileSync(envExamplePath, "utf8");
+    expect(envExampleSrc).toContain("NEXT_PUBLIC_GOOGLE_CLIENT_ID=");
+  });
 });

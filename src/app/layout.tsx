@@ -4,9 +4,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PLAS-TypeScript | Dashboard Analitik Dosen & API",
+  title: "PLAS (PLAS-TypeScript) | Platform Pembelajaran TypeScript & Dashboard Dosen",
   description:
-    "Platform pembelajaran pemrograman TypeScript dengan dashboard analitik dosen read-only dan layanan REST API terpadu.",
+    "PLAS (Programming Learning Assistant System) - PLAS-TypeScript: platform pembelajaran sintaksis dasar TypeScript dengan asisten AI Socratic 3-level untuk mahasiswa serta Web Dashboard Analitik dan Manajemen Kelas untuk dosen.",
 };
 
 export default function RootLayout({

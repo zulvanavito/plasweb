@@ -4,6 +4,12 @@ Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.0.0/).
 
 ## [Unreleased]
 
+### Tahap 7 — Halaman Publik Google OAuth Branding Verification & GIS `signInWithIdToken`
+- Mengganti `redirect("/login")` pada `src/app/page.tsx` dengan halaman landing publik resmi **PLAS (Programming Learning Assistant System) - PLAS-TypeScript** yang dapat diakses tanpa login, lengkap dengan `PlasAppLogo`, ringkasan aplikasi mobile AI Socratic 3-level & Web Dashboard Dosen, tombol CTA **Masuk Portal Dosen** (`/login`), serta tautan **Kebijakan Privasi** (`/privacy`) dan **Ketentuan Layanan** (`/terms`).
+- Menambahkan halaman publik `src/app/privacy/page.tsx` (`/privacy`) dan `src/app/terms/page.tsx` (`/terms`) bergaya *Academic Code & Paper* (`DESIGN.md v1.1`) tanpa em-dash (`U+2014`) dan tanpa emoji, mencakup pengungkapan scope Google (`openid`, `email`, `profile`), penyimpanan di Supabase, larangan penjualan/pembagian data ke pihak ketiga, batasan akun dosen/mahasiswa, serta kontak pengembang (`zavitoanwari@gmail.com`).
+- Mengubah alur Google Sign-In di `src/app/login/page.tsx` dari `signInWithOAuth` menjadi **Google Identity Services (GIS)** melalui `next/script` (`https://accounts.google.com/gsi/client`), helper nonce Web Crypto API (`crypto.getRandomValues` + `SHA-256`), tombol resmi `window.google.accounts.id.renderButton`, serta `supabase.auth.signInWithIdToken` sebelum `verifyLecturerAccess()`, lengkap dengan fallback pesan ramah bila `NEXT_PUBLIC_GOOGLE_CLIENT_ID` belum dikonfigurasi dan tautan footer ke `/`, `/privacy`, dan `/terms`.
+- Menambahkan placeholder `NEXT_PUBLIC_GOOGLE_CLIENT_ID` pada `.env.example`, memperjelas nama **PLAS (PLAS-TypeScript)** pada metadata `src/app/layout.tsx`, menambah uji kontrak/hygiene pada `tests/stage4-lecturer-api-and-csv.test.ts` (`42/42` test Vitest lulus), serta menyinkronkan `BACKLOG.md`, `README.md`, dan `walkthrough.md`.
+
 ### Tahap 6 — Manajemen Kelas Dosen (CRUD Kelas, Keluarkan Mahasiswa, & Relaksasi `DBR-14`)
 - Menambahkan migrasi SQL `supabase/migrations/008_lecturer_class_crud.sql` dan menerapkannya ke Supabase Dev (`ehgamppardyppeoxscou`):
   - Memperbarui trigger `fn_g1_kelas_lock()` (`DBR-14`) agar hanya menolak perpindahan langsung antar-kelas (`OLD.kelas_id IS NOT NULL AND NEW.kelas_id IS NOT NULL`) setelah Pre-Test `SUBMITTED`, sambil mengizinkan transisi ke `NULL` (kelas dihapus / dikeluarkan dosen) maupun dari `NULL` ke kelas baru (re-join) dengan riwayat nilai Pre-Test, Post-Test, dan latihan yang tetap tersimpan dan otomatis tersinkron.
