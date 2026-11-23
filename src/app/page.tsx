@@ -4,11 +4,16 @@ import {
   ActivityPulse,
   ChevronRight,
   CodeBrackets,
+  DownloadTray,
   LayoutDashboard,
   LockClosed,
   PlasAppLogo,
   UsersGroup,
 } from "@/components/ui/icons";
+
+const APK_DOWNLOAD_URL =
+  "https://github.com/zulvanavito/plasmobile/releases/latest/download/PLAS-TypeScript.apk";
+const RELEASES_URL = "https://github.com/zulvanavito/plasmobile/releases";
 
 export const metadata: Metadata = {
   title: "PLAS (PLAS-TypeScript) | Programming Learning Assistant System",
@@ -84,18 +89,15 @@ export default function HomePage() {
               <span>Masuk Portal Dosen</span>
               <ChevronRight className="h-4 w-4" />
             </Link>
-            <Link
-              href="/privacy"
-              className="inline-flex min-h-[44px] items-center rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-[var(--plas-bg-surface)] px-4 text-sm font-semibold text-[var(--plas-text-primary)] transition-colors hover:bg-[var(--plas-bg-subtle)]"
+            <a
+              href={APK_DOWNLOAD_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-[var(--plas-radius-md)] border border-[var(--plas-brand-primary)] bg-[var(--plas-brand-tint)] px-5 text-sm font-semibold text-[var(--plas-brand-primary)] transition-colors hover:bg-[var(--plas-brand-primary)] hover:text-white"
             >
-              Kebijakan Privasi
-            </Link>
-            <Link
-              href="/terms"
-              className="inline-flex min-h-[44px] items-center rounded-[var(--plas-radius-md)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-subtle)] px-4 text-sm font-semibold text-[var(--plas-text-secondary)] transition-colors hover:text-[var(--plas-text-primary)]"
-            >
-              Ketentuan Layanan
-            </Link>
+              <DownloadTray className="h-4 w-4" />
+              <span>Unduh Aplikasi Android (APK)</span>
+            </a>
           </div>
         </section>
 
@@ -160,6 +162,104 @@ export default function HomePage() {
                 diperjualbelikan kepada pihak ketiga.
               </p>
             </article>
+          </div>
+        </section>
+
+        <section
+          aria-labelledby="mobile-app-heading"
+          className="mt-8 rounded-[var(--plas-radius-xl)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-surface)] p-6 sm:p-8"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--plas-border-subtle)] pb-5">
+            <div>
+              <p className="font-mono text-xs font-semibold tracking-wider text-[var(--plas-brand-primary)] uppercase">
+                APLIKASI MOBILE MAHASISWA // ANDROID APK
+              </p>
+              <h2
+                id="mobile-app-heading"
+                className="mt-1.5 text-xl font-bold text-[var(--plas-text-primary)]"
+              >
+                Unduh &amp; Panduan Instalasi PLAS-TypeScript Mobile
+              </h2>
+              <p className="mt-1 text-sm text-[var(--plas-text-secondary)]">
+                Rilis resmi aplikasi Android untuk mahasiswa peserta mata kuliah pemrograman
+                TypeScript.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <a
+                href={APK_DOWNLOAD_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] items-center gap-2 rounded-[var(--plas-radius-md)] bg-[var(--plas-brand-primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--plas-brand-hover)]"
+              >
+                <DownloadTray className="h-4 w-4" />
+                <span>Unduh Aplikasi Android (APK)</span>
+              </a>
+              <a
+                href={RELEASES_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-[var(--plas-bg-surface)] px-4 text-sm font-semibold text-[var(--plas-text-primary)] transition-colors hover:bg-[var(--plas-bg-subtle)]"
+              >
+                <span>Lihat Daftar Rilis &amp; Versi</span>
+                <ChevronRight className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-5 md:grid-cols-3">
+            <div className="rounded-[var(--plas-radius-lg)] border border-[var(--plas-border-subtle)] bg-[var(--plas-bg-canvas)] p-5">
+              <p className="font-mono text-xs font-semibold text-[var(--plas-brand-primary)] uppercase">
+                01 // Kompatibilitas
+              </p>
+              <h3 className="mt-2 text-sm font-bold text-[var(--plas-text-primary)]">
+                Perangkat Android Resmi
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-[var(--plas-text-secondary)]">
+                Mendukung sistem operasi <strong>Android 8.0 ke atas</strong> (
+                <code className="rounded bg-[var(--plas-bg-subtle)] px-1.5 py-0.5 font-mono text-xs">
+                  minSdk 26
+                </code>
+                ). Paket APK dan informasi ukuran rilis resmi didistribusikan langsung melalui
+                GitHub Releases.
+              </p>
+            </div>
+
+            <div className="rounded-[var(--plas-radius-lg)] border border-[var(--plas-border-subtle)] bg-[var(--plas-bg-canvas)] p-5">
+              <p className="font-mono text-xs font-semibold text-[var(--plas-brand-primary)] uppercase">
+                02 // Fitur Utama
+              </p>
+              <h3 className="mt-2 text-sm font-bold text-[var(--plas-text-primary)]">
+                Belajar Terarah di Mobile
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-[var(--plas-text-secondary)]">
+                Masuk dengan akun Google atau Email, akses 7 Materi &amp; 20 Sub-Materi TypeScript
+                lengkap dengan blok kode, kerjakan Latihan (<code className="font-mono text-xs">MC</code>,{" "}
+                <code className="font-mono text-xs">TF</code>,{" "}
+                <code className="font-mono text-xs">FIB</code>) maks 3 percobaan, tanya{" "}
+                <strong>AI Socratic 3-level</strong> (kuota 10/hari reset{" "}
+                <code className="font-mono text-xs">00:00 WITA</code>), serta kerjakan Pre-Test
+                &amp; Post-Test.
+              </p>
+            </div>
+
+            <div className="rounded-[var(--plas-radius-lg)] border border-[var(--plas-border-subtle)] bg-[var(--plas-bg-canvas)] p-5">
+              <p className="font-mono text-xs font-semibold text-[var(--plas-brand-primary)] uppercase">
+                03 // Cara Pasang Singkat
+              </p>
+              <h3 className="mt-2 text-sm font-bold text-[var(--plas-text-primary)]">
+                Instalasi File APK
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-[var(--plas-text-secondary)]">
+                Unduh file{" "}
+                <code className="rounded bg-[var(--plas-bg-subtle)] px-1.5 py-0.5 font-mono text-xs">
+                  PLAS-TypeScript.apk
+                </code>
+                , buka file dari pengelola unduhan/browser, lalu izinkan{" "}
+                <em>&quot;Install from unknown sources / Izinkan dari sumber ini&quot;</em> saat
+                diminta Android.
+              </p>
+            </div>
           </div>
         </section>
 
