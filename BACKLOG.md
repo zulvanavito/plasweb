@@ -13,7 +13,7 @@
 
 ---
 
-## Roadmap Bertahap (Tahap 1 s.d. Tahap 6)
+## Roadmap Bertahap (Tahap 1 s.d. Tahap 7)
 
 ### Tahap 1 — Fondasi Proyek, Schema SQL v0.3, RLS P4, Fungsi G1–G4, & Seed Resmi
 - [x] Dokumen kontrol proyek (`AGENTS.md`, `BACKLOG.md`, `CHANGELOG.md`)
@@ -59,6 +59,7 @@
 - [x] Mengganti `redirect("/login")` pada `src/app/page.tsx` menjadi halaman beranda publik resmi **PLAS (Programming Learning Assistant System) - PLAS-TypeScript** tanpa autentikasi, dengan CTA **Masuk Portal Dosen** (`/login`) serta tautan **Kebijakan Privasi** (`/privacy`) dan **Ketentuan Layanan** (`/terms`)
 - [x] Menambahkan halaman publik `src/app/privacy/page.tsx` (`/privacy`) dan `src/app/terms/page.tsx` (`/terms`) bergaya *Academic Code & Paper* (`DESIGN.md v1.1`) dengan pengungkapan akses scope Google (`openid email profile`), penyimpanan Supabase, larangan penjualan/pembagian data pihak ketiga, ketentuan akun dosen/mahasiswa, dan kontak `zavitoanwari@gmail.com`
 - [x] Mengubah Google Sign-In di `src/app/login/page.tsx` dari `signInWithOAuth` menjadi **Google Identity Services (GIS)** via `next/script` (`https://accounts.google.com/gsi/client`) + nonce Web Crypto (`SHA-256`) + `supabase.auth.signInWithIdToken`, beserta tautan `/`, `/privacy`, `/terms` pada footer kartu login
+- [x] Memperbarui indikator loading `!authReady` di `src/app/(dashboard)/layout.tsx` menjadi cincin spinner `animate-spin` mengelilingi `PlasAppLogo` dengan status **PLAS-TypeScript** dan `role="status"` / `aria-live="polite"`
 - [x] Menambahkan uji kontrak & hygiene di `tests/stage4-lecturer-api-and-csv.test.ts` serta verifikasi penuh (`42/42` test Vitest, `npm run typecheck`, `npm run lint`, dan isolated `next build`)
 
 ---
