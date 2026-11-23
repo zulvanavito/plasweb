@@ -15,6 +15,7 @@ import {
   TrashCan,
   UsersGroup,
 } from "@/components/ui/icons";
+import { InfoPopover } from "@/components/ui/info-popover";
 import { EmptyState } from "@/components/ui/owl-mascot";
 import { ErrorBanner, SkeletonBlock } from "@/components/ui/states";
 import {
@@ -76,9 +77,15 @@ export default function ClassesPage() {
           <p className="font-mono text-[11px] font-semibold tracking-wider text-[var(--plas-brand-primary)] uppercase">
             MANAJEMEN // DATA KELAS
           </p>
-          <h1 className="mt-1 text-2xl font-bold text-[var(--plas-text-primary)]">
-            Data Kelas Diampu
-          </h1>
+          <div className="mt-1 flex items-center gap-1.5">
+            <h1 className="text-2xl font-bold text-[var(--plas-text-primary)]">
+              Data Kelas Diampu
+            </h1>
+            <InfoPopover
+              label="Info Manajemen Kelas"
+              description="Menghapus kelas atau mengeluarkan mahasiswa tidak menghapus riwayat nilai latihan maupun tes mahasiswa. Saat mahasiswa bergabung ke kelas lain di aplikasi mobile, seluruh riwayat nilainya otomatis tersinkron kembali."
+            />
+          </div>
         </div>
 
         <button

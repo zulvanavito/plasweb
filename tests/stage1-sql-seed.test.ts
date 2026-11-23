@@ -48,7 +48,7 @@ function evaluateFib(studentAnswer: string, expectedAnswer: string): boolean {
 }
 
 describe("Tahap 1 — Migrasi SQL & Seed Resmi PLAS-TypeScript", () => {
-  it("memiliki 8 berkas migrasi terurut 001 sampai 008", () => {
+  it("memiliki 9 berkas migrasi terurut 001 sampai 009", () => {
     const files = fs
       .readdirSync(MIGRATIONS_DIR)
       .filter((f) => f.endsWith(".sql"))
@@ -63,6 +63,7 @@ describe("Tahap 1 — Migrasi SQL & Seed Resmi PLAS-TypeScript", () => {
       "006_rls_grants_p4.sql",
       "007_seed_official_content.sql",
       "008_lecturer_class_crud.sql",
+      "009_lecturer_ai_usage_rls.sql",
     ]);
   });
 
@@ -255,5 +256,16 @@ describe("Tahap 1 — Migrasi SQL & Seed Resmi PLAS-TypeScript", () => {
 
     expect(m008).toContain("TO plas_api;");
     expect(m008).not.toMatch(/GRANT\s+(INSERT|UPDATE|DELETE)\s+ON\s+public\./i);
+  });
+
+  it("009_lecturer_ai_usage_rls membatasi SELECT ai_usage dosen hanya pada mahasiswa berkelas yang diampu", () => {
+    const m009 = readMigration("009_lecturer_ai_usage_rls.sql");
+
+    expect(m009).toContain("ON public.ai_usage");
+    expect(m009).toContain("FOR SELECT TO plas_api");
+    expect(m009).toContain("m.kelas_id IS NOT NULL");
+    expect(m009).toContain("public.fn_current_dosen_id()");
+    expect(m009).toContain("public.fn_request_auth_uid()");
+    expect(m009).not.toMatch(/GRANT\s+(INSERT|UPDATE|DELETE)\s+ON\s+public\./i);
   });
 });

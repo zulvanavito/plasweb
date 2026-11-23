@@ -5,6 +5,7 @@ import { MaterialDistributionChart } from "@/components/charts/lecturer-charts";
 import { ActivityDetailModal } from "@/components/lecturer/activity-detail-modal";
 import { EvaluationDetailModal } from "@/components/lecturer/evaluation-detail-modal";
 import { DownloadTray, SearchMagnifier } from "@/components/ui/icons";
+import { InfoPopover } from "@/components/ui/info-popover";
 import { EmptyState } from "@/components/ui/owl-mascot";
 import { PlasStatusBadge } from "@/components/ui/plas-status-badge";
 import { ErrorBanner, SkeletonBlock } from "@/components/ui/states";
@@ -138,9 +139,15 @@ export default function ActivitiesPage() {
         <p className="font-mono text-[11px] font-semibold tracking-wider text-[var(--plas-brand-primary)] uppercase">
           READ-ONLY // PEMANTAUAN MAHASISWA
         </p>
-        <h1 className="mt-1 text-2xl font-bold text-[var(--plas-text-primary)]">
-          Aktivitas Pembelajaran
-        </h1>
+        <div className="mt-1 flex items-center gap-1.5">
+          <h1 className="text-2xl font-bold text-[var(--plas-text-primary)]">
+            Aktivitas Pembelajaran
+          </h1>
+          <InfoPopover
+            label="Info Penilaian & Evaluasi"
+            description="Nilai N/A atau Belum ada menandakan sesi belum selesai dan tidak dihitung sebagai 0. Selisih evaluasi dihitung dengan rumus Post - Pre hanya untuk pasangan tes selesai. Soal Fill in the Blank (FIB) dinilai otomatis dengan metode Case-insensitive + Trim + Levenshtein Similarity >= 70%."
+          />
+        </div>
       </div>
 
       {/* 2 Sub-Tab Eksplisit (DESIGN.md §5.3 W04) */}

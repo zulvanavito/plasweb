@@ -43,6 +43,12 @@ export default function HomePage() {
             className="flex flex-wrap items-center gap-2 sm:gap-4"
           >
             <Link
+              href="/panduan"
+              className="rounded-[var(--plas-radius-md)] px-3 py-2 text-sm font-medium text-[var(--plas-text-secondary)] transition-colors hover:bg-[var(--plas-bg-subtle)] hover:text-[var(--plas-text-primary)]"
+            >
+              Panduan Dosen
+            </Link>
+            <Link
               href="/privacy"
               className="rounded-[var(--plas-radius-md)] px-3 py-2 text-sm font-medium text-[var(--plas-text-secondary)] transition-colors hover:bg-[var(--plas-bg-subtle)] hover:text-[var(--plas-text-primary)]"
             >
@@ -336,6 +342,9 @@ export default function HomePage() {
           <div className="flex flex-wrap items-center gap-4">
             <Link href="/login" className="font-medium hover:text-[var(--plas-text-primary)]">
               Masuk Portal Dosen
+            </Link>
+            <Link href="/panduan" className="font-medium hover:text-[var(--plas-text-primary)]">
+              Panduan Dosen
             </Link>
             <Link href="/privacy" className="font-medium hover:text-[var(--plas-text-primary)]">
               Kebijakan Privasi

@@ -1,17 +1,25 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityTrendChart,
+  AiUsageSummaryPanel,
   ExerciseStatusChart,
+  MaterialPerformanceChart,
+  PostTestReadinessChart,
   PrePostComparisonChart,
 } from "@/components/charts/lecturer-charts";
+import { ActivityDetailModal } from "@/components/lecturer/activity-detail-modal";
+import { EvaluationDetailModal } from "@/components/lecturer/evaluation-detail-modal";
 import {
   ActivityPulse,
+  ChevronRight,
   CodeBrackets,
   RefreshCw,
   UsersGroup,
 } from "@/components/ui/icons";
+import { InfoPopover } from "@/components/ui/info-popover";
 import { EmptyState } from "@/components/ui/owl-mascot";
 import { PlasStatusBadge } from "@/components/ui/plas-status-badge";
 import { ErrorBanner, SkeletonBlock } from "@/components/ui/states";
@@ -29,6 +37,10 @@ export default function DashboardPage() {
   const [data, setData] = useState<LecturerDashboardDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedAttemptId, setSelectedAttemptId] = useState<string | null>(null);
+  const [selectedMahasiswaId, setSelectedMahasiswaId] = useState<string | null>(
+    null
+  );
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -65,12 +77,13 @@ export default function DashboardPage() {
           value: data.kpi.total_students,
           icon: UsersGroup,
           note: "Tidak termasuk pengguna umum",
+          info: "Hanya menghitung mahasiswa yang terdaftar di kelas Anda. Pengguna Umum (mahasiswa tanpa kelas atau yang dikeluarkan dari kelas) tidak masuk hitungan analitik dashboard.",
         },
         {
           label: "Kelas Diampu",
           value: data.kpi.total_classes,
           icon: CodeBrackets,
-          note: "Read-Only",
+          note: "Kelola di menu Data Kelas",
         },
         {
           label: "Total Latihan (Exercise)",
@@ -196,9 +209,17 @@ export default function DashboardPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-semibold text-[var(--plas-text-muted)]">
-                        {card.label}
-                      </p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs font-semibold text-[var(--plas-text-muted)]">
+                          {card.label}
+                        </p>
+                        {"info" in card && card.info ? (
+                          <InfoPopover
+                            label={`Info ${card.label}`}
+                            description={card.info}
+                          />
+                        ) : null}
+                      </div>
                       <p className="mt-2 font-mono text-2xl font-bold text-[var(--plas-text-primary)]">
                         {card.value}
                       </p>
@@ -229,17 +250,28 @@ export default function DashboardPage() {
               pairedDelta={data.test_comparison.paired_avg_delta}
               pairedCount={data.test_comparison.paired_count}
             />
+            <MaterialPerformanceChart items={data.material_performance} />
+            <AiUsageSummaryPanel summary={data.ai_usage_summary} />
+            <PostTestReadinessChart readiness={data.post_test_readiness} />
             <ActivityTrendChart data={data.activity_trend} />
 
             {/* Aktivitas Pembelajaran Terbaru */}
             <div className="rounded-[var(--plas-radius-lg)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-surface)] p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-base font-semibold text-[var(--plas-text-primary)]">
                   Aktivitas Pembelajaran Terbaru
                 </h3>
-                <span className="text-xs font-medium text-[var(--plas-text-muted)]">
-                  Zona WITA
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-medium text-[var(--plas-text-muted)]">
+                    Zona WITA
+                  </span>
+                  <Link
+                    href="/activities"
+                    className="text-xs font-semibold text-[var(--plas-brand-primary)] hover:underline"
+                  >
+                    Lihat Semua
+                  </Link>
+                </div>
               </div>
 
               {data.recent_activities.length === 0 ? (
@@ -250,9 +282,17 @@ export default function DashboardPage() {
               ) : (
                 <div className="divide-y divide-[var(--plas-border-subtle)]">
                   {data.recent_activities.map((act) => (
-                    <div
+                    <button
                       key={`${act.kind}-${act.id}`}
-                      className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+                      type="button"
+                      onClick={() => {
+                        if (act.kind === "EXERCISE") {
+                          setSelectedAttemptId(act.id);
+                        } else {
+                          setSelectedMahasiswaId(act.mahasiswa_id);
+                        }
+                      }}
+                      className="flex min-h-[44px] w-full cursor-pointer items-center justify-between gap-2 rounded-[var(--plas-radius-md)] px-2.5 py-2.5 text-left transition-colors hover:bg-[var(--plas-bg-canvas)]"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[var(--plas-text-primary)]">
@@ -268,7 +308,7 @@ export default function DashboardPage() {
                           {formatWitaDateTime(act.timestamp)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex shrink-0 items-center gap-2">
                         <PlasStatusBadge
                           variant={
                             act.status === "SUBMITTED"
@@ -279,8 +319,9 @@ export default function DashboardPage() {
                         <span className="font-mono text-xs font-semibold text-[var(--plas-text-primary)]">
                           {act.score !== null ? act.score.toFixed(1) : "N/A"}
                         </span>
+                        <ChevronRight className="h-4 w-4 text-[var(--plas-text-muted)]" />
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -288,6 +329,15 @@ export default function DashboardPage() {
           </section>
         </>
       ) : null}
+
+      <ActivityDetailModal
+        attemptId={selectedAttemptId}
+        onClose={() => setSelectedAttemptId(null)}
+      />
+      <EvaluationDetailModal
+        mahasiswaId={selectedMahasiswaId}
+        onClose={() => setSelectedMahasiswaId(null)}
+      />
     </div>
   );
 }

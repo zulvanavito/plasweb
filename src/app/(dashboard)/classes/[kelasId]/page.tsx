@@ -16,6 +16,7 @@ import {
   TrashCan,
   UserRemove,
 } from "@/components/ui/icons";
+import { InfoPopover } from "@/components/ui/info-popover";
 import { EmptyState } from "@/components/ui/owl-mascot";
 import { ErrorBanner, SkeletonBlock } from "@/components/ui/states";
 import {
@@ -158,9 +159,15 @@ export default function ClassDetailPage() {
             <p className="font-mono text-xs font-semibold text-[var(--plas-brand-primary)]">
               {data.kelas.kode}
             </p>
-            <h1 className="mt-1 text-2xl font-bold text-[var(--plas-text-primary)]">
-              {data.kelas.nama}
-            </h1>
+            <div className="mt-1 flex items-center gap-1.5">
+              <h1 className="text-2xl font-bold text-[var(--plas-text-primary)]">
+                {data.kelas.nama}
+              </h1>
+              <InfoPopover
+                label="Info Keanggotaan & Riwayat Nilai"
+                description="Mengeluarkan mahasiswa dari kelas ini atau menghapus kelas hanya melepas status keanggotaan menjadi Pengguna Umum. Riwayat nilai latihan, Pre-Test, dan Post-Test tetap tersimpan dan otomatis tersinkron jika mahasiswa bergabung ke kelas lain."
+              />
+            </div>
             <p className="mt-1 text-sm text-[var(--plas-text-secondary)]">
               Dosen Pengampu: {data.kelas.dosen_nama} | {data.kelas.tahun_akademik}{" "}
               Semester {data.kelas.semester} | {data.kelas.student_count}{" "}

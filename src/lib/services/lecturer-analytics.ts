@@ -267,6 +267,7 @@ export async function getLecturerDashboard(
 
   const recentRes = await db.query<{
     id: string;
+    mahasiswa_id: string;
     kind: "EXERCISE" | "TEST";
     student_name: string;
     student_nim: string;
@@ -279,6 +280,7 @@ export async function getLecturerDashboard(
     `SELECT * FROM (
        SELECT
          ea.exercise_attempt_id AS id,
+         m.mahasiswa_id,
          'EXERCISE'::text AS kind,
          m.nama AS student_name,
          m.nim AS student_nim,
@@ -299,6 +301,7 @@ export async function getLecturerDashboard(
        UNION ALL
        SELECT
          ta.test_attempt_id AS id,
+         m.mahasiswa_id,
          'TEST'::text AS kind,
          m.nama AS student_name,
          m.nim AS student_nim,
@@ -326,6 +329,154 @@ export async function getLecturerDashboard(
       filters.to ?? null,
     ]
   );
+
+  const materialPerfRes = await db.query<{
+    material_id: string;
+    sequence: number | string;
+    title: string;
+    submitted_attempts_count: number | string;
+    avg_score: string | number | null;
+  }>(
+    `WITH scoped_submitted AS (
+       SELECT
+         ea.exercise_attempt_id,
+         ea.exercise_id,
+         ea.score
+       FROM public.exercise_attempt ea
+       JOIN public.mahasiswa m ON m.mahasiswa_id = ea.mahasiswa_id
+       JOIN public.kelas k ON k.kelas_id = m.kelas_id
+       WHERE k.dosen_id = $1
+         AND m.kelas_id IS NOT NULL
+         AND ea.status = 'SUBMITTED'
+         AND ($2::uuid IS NULL OR k.kelas_id = $2::uuid)
+         AND ($3::date IS NULL OR timezone('Asia/Makassar', ea.started_at)::date >= $3::date)
+         AND ($4::date IS NULL OR timezone('Asia/Makassar', ea.started_at)::date <= $4::date)
+     )
+     SELECT
+       mat.material_id,
+       mat.sequence,
+       mat.title,
+       COUNT(ss.exercise_attempt_id)::int AS submitted_attempts_count,
+       ROUND(AVG(ss.score), 2) AS avg_score
+     FROM public.material mat
+     LEFT JOIN public.sub_material sm ON sm.material_id = mat.material_id
+     LEFT JOIN public.exercise e ON e.submaterial_id = sm.submaterial_id
+     LEFT JOIN scoped_submitted ss ON ss.exercise_id = e.exercise_id
+     GROUP BY mat.material_id, mat.sequence, mat.title
+     ORDER BY mat.sequence ASC`,
+    [
+      lecturer.dosen_id,
+      filters.kelasId ?? null,
+      filters.from ?? null,
+      filters.to ?? null,
+    ]
+  );
+
+  const aiSummaryRes = await db.query<{
+    total_success_requests: number | string;
+    active_students_count: number | string;
+  }>(
+    `SELECT
+       COUNT(au.ai_usage_id)::int AS total_success_requests,
+       COUNT(DISTINCT au.mahasiswa_id)::int AS active_students_count
+     FROM public.ai_usage au
+     JOIN public.mahasiswa m ON m.mahasiswa_id = au.mahasiswa_id
+     JOIN public.kelas k ON k.kelas_id = m.kelas_id
+     WHERE k.dosen_id = $1
+       AND m.kelas_id IS NOT NULL
+       AND au.status = 'SUCCESS'
+       AND ($2::uuid IS NULL OR k.kelas_id = $2::uuid)
+       AND ($3::date IS NULL OR au.usage_date >= $3::date)
+       AND ($4::date IS NULL OR au.usage_date <= $4::date)`,
+    [
+      lecturer.dosen_id,
+      filters.kelasId ?? null,
+      filters.from ?? null,
+      filters.to ?? null,
+    ]
+  );
+
+  const aiTrendRes = await db.query<{
+    date: string;
+    success_requests: number | string;
+  }>(
+    `SELECT
+       to_char(au.usage_date, 'YYYY-MM-DD') AS date,
+       COUNT(au.ai_usage_id)::int AS success_requests
+     FROM public.ai_usage au
+     JOIN public.mahasiswa m ON m.mahasiswa_id = au.mahasiswa_id
+     JOIN public.kelas k ON k.kelas_id = m.kelas_id
+     WHERE k.dosen_id = $1
+       AND m.kelas_id IS NOT NULL
+       AND au.status = 'SUCCESS'
+       AND ($2::uuid IS NULL OR k.kelas_id = $2::uuid)
+       AND ($3::date IS NULL OR au.usage_date >= $3::date)
+       AND ($4::date IS NULL OR au.usage_date <= $4::date)
+     GROUP BY au.usage_date
+     ORDER BY au.usage_date ASC`,
+    [
+      lecturer.dosen_id,
+      filters.kelasId ?? null,
+      filters.from ?? null,
+      filters.to ?? null,
+    ]
+  );
+
+  const aiSummary = aiSummaryRes.rows[0] ?? {
+    total_success_requests: 0,
+    active_students_count: 0,
+  };
+
+  const readinessRes = await db.query<{
+    total_required_exercises: number | string;
+    total_students: number | string;
+    ready_count: number | string;
+    in_progress_count: number | string;
+    not_started_count: number | string;
+  }>(
+    `WITH required_ex AS (
+       SELECT COUNT(*)::int AS total_required_exercises
+       FROM public.exercise
+     ),
+     per_student AS (
+       SELECT
+         m.mahasiswa_id,
+         COUNT(DISTINCT ea.exercise_id) FILTER (WHERE ea.status = 'SUBMITTED')::int AS completed_exercises
+       FROM public.mahasiswa m
+       JOIN public.kelas k ON k.kelas_id = m.kelas_id
+       LEFT JOIN public.exercise_attempt ea ON ea.mahasiswa_id = m.mahasiswa_id
+       WHERE k.dosen_id = $1
+         AND m.kelas_id IS NOT NULL
+         AND ($2::uuid IS NULL OR k.kelas_id = $2::uuid)
+       GROUP BY m.mahasiswa_id
+     )
+     SELECT
+       req.total_required_exercises,
+       COUNT(ps.mahasiswa_id)::int AS total_students,
+       COUNT(ps.mahasiswa_id) FILTER (
+         WHERE req.total_required_exercises > 0
+           AND ps.completed_exercises >= req.total_required_exercises
+       )::int AS ready_count,
+       COUNT(ps.mahasiswa_id) FILTER (
+         WHERE ps.completed_exercises >= 1
+           AND (req.total_required_exercises = 0 OR ps.completed_exercises < req.total_required_exercises)
+       )::int AS in_progress_count,
+       COUNT(ps.mahasiswa_id) FILTER (
+         WHERE ps.completed_exercises = 0
+       )::int AS not_started_count
+     FROM required_ex req
+     LEFT JOIN per_student ps ON TRUE
+     GROUP BY req.total_required_exercises`,
+    [lecturer.dosen_id, filters.kelasId ?? null]
+  );
+
+  const readiness = readinessRes.rows[0] ?? {
+    total_required_exercises: 0,
+    total_students: 0,
+    ready_count: 0,
+    in_progress_count: 0,
+    not_started_count: 0,
+  };
 
   const studentKpi = studentKpiRes.rows[0] ?? {
     total_students: 0,
@@ -377,6 +528,31 @@ export async function getLecturerDashboard(
       post_submitted_count: Number(testStats.post_submitted_count),
       paired_count: Number(testStats.paired_count),
     },
+    material_performance: materialPerfRes.rows.map((row) => {
+      const submittedCount = Number(row.submitted_attempts_count);
+      return {
+        material_id: row.material_id,
+        sequence: Number(row.sequence),
+        title: row.title,
+        submitted_attempts_count: submittedCount,
+        avg_score: submittedCount > 0 ? toNumberOrNull(row.avg_score) : null,
+      };
+    }),
+    ai_usage_summary: {
+      total_success_requests: Number(aiSummary.total_success_requests),
+      active_students_count: Number(aiSummary.active_students_count),
+      daily_trend: aiTrendRes.rows.map((row) => ({
+        date: row.date,
+        success_requests: Number(row.success_requests),
+      })),
+    },
+    post_test_readiness: {
+      total_required_exercises: Number(readiness.total_required_exercises),
+      total_students: Number(readiness.total_students),
+      ready_count: Number(readiness.ready_count),
+      in_progress_count: Number(readiness.in_progress_count),
+      not_started_count: Number(readiness.not_started_count),
+    },
     activity_trend: trendRes.rows.map((row) => ({
       date: row.date,
       exercise_attempts: Number(row.exercise_attempts),
@@ -384,6 +560,7 @@ export async function getLecturerDashboard(
     })),
     recent_activities: recentRes.rows.map((row) => ({
       id: row.id,
+      mahasiswa_id: row.mahasiswa_id,
       kind: row.kind,
       student_name: row.student_name,
       student_nim: row.student_nim,

@@ -19,6 +19,31 @@ export interface LecturerClassRefDto {
   kode: string;
 }
 
+export interface LecturerMaterialPerformanceDto {
+  material_id: string;
+  sequence: number;
+  title: string;
+  submitted_attempts_count: number;
+  avg_score: number | null;
+}
+
+export interface LecturerAiUsageSummaryDto {
+  total_success_requests: number;
+  active_students_count: number;
+  daily_trend: Array<{
+    date: string;
+    success_requests: number;
+  }>;
+}
+
+export interface LecturerPostTestReadinessDto {
+  total_required_exercises: number;
+  total_students: number;
+  ready_count: number;
+  in_progress_count: number;
+  not_started_count: number;
+}
+
 export interface LecturerDashboardDto {
   lecturer: LecturerIdentityDto;
   classes: LecturerClassRefDto[];
@@ -42,6 +67,9 @@ export interface LecturerDashboardDto {
     post_submitted_count: number;
     paired_count: number;
   };
+  material_performance: LecturerMaterialPerformanceDto[];
+  ai_usage_summary: LecturerAiUsageSummaryDto;
+  post_test_readiness: LecturerPostTestReadinessDto;
   activity_trend: Array<{
     date: string;
     exercise_attempts: number;
@@ -49,6 +77,7 @@ export interface LecturerDashboardDto {
   }>;
   recent_activities: Array<{
     id: string;
+    mahasiswa_id: string;
     kind: "EXERCISE" | "TEST";
     student_name: string;
     student_nim: string;

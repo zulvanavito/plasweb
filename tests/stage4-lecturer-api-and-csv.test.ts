@@ -185,6 +185,7 @@ function defaultLecturerHandler(
       rows: [
         {
           id: EX_ATT_ID,
+          mahasiswa_id: MHS_1_ID,
           kind: "EXERCISE",
           student_name: "Budi",
           student_nim: "2415051001",
@@ -196,6 +197,7 @@ function defaultLecturerHandler(
         },
         {
           id: PRE_ATT_ID,
+          mahasiswa_id: MHS_2_ID,
           kind: "TEST",
           student_name: "Sari",
           student_nim: "2415051002",
@@ -204,6 +206,68 @@ function defaultLecturerHandler(
           status: "IN_PROGRESS",
           score: "0.00",
           timestamp: "2026-11-20T04:00:00.000Z",
+        },
+      ],
+    };
+  }
+
+  if (sql.includes("WITH scoped_submitted AS")) {
+    return {
+      rows: [
+        {
+          material_id: MAT_1_ID,
+          sequence: 1,
+          title: "Tipe Data Dasar",
+          submitted_attempts_count: 4,
+          avg_score: "82.50",
+        },
+        {
+          material_id: "40000000-0000-4000-8000-000000000002",
+          sequence: 2,
+          title: "Operator & Ekspresi",
+          submitted_attempts_count: 3,
+          avg_score: "65.00",
+        },
+        {
+          material_id: "40000000-0000-4000-8000-000000000003",
+          sequence: 3,
+          title: "Percabangan",
+          submitted_attempts_count: 0,
+          avg_score: "0.00",
+        },
+      ],
+    };
+  }
+
+  if (sql.includes("AS total_success_requests")) {
+    return {
+      rows: [
+        {
+          total_success_requests: 7,
+          active_students_count: 2,
+        },
+      ],
+    };
+  }
+
+  if (sql.includes("AS success_requests") && sql.includes("FROM public.ai_usage au")) {
+    return {
+      rows: [
+        { date: "2026-11-20", success_requests: 3 },
+        { date: "2026-11-21", success_requests: 4 },
+      ],
+    };
+  }
+
+  if (sql.includes("WITH required_ex AS")) {
+    return {
+      rows: [
+        {
+          total_required_exercises: 20,
+          total_students: 2,
+          ready_count: 1,
+          in_progress_count: 1,
+          not_started_count: 0,
         },
       ],
     };
@@ -636,19 +700,99 @@ describe("Tahap 4 & 6 — Endpoint Dosen (§5), Manajemen Kelas, Keamanan, CSV &
 
     expect(body.kpi.total_students).toBe(2);
     expect(body.test_comparison.paired_avg_delta).toBe(15);
+    expect(body.recent_activities[0].mahasiswa_id).toBe(MHS_1_ID);
     expect(body.recent_activities[0].score).toBe(80);
+    expect(body.recent_activities[1].mahasiswa_id).toBe(MHS_2_ID);
     expect(body.recent_activities[1].status).toBe("IN_PROGRESS");
     expect(body.recent_activities[1].score).toBeNull();
+
+    const recentQuery = capturedQueries.find((q) =>
+      q.sql.includes("ORDER BY recent.timestamp DESC")
+    );
+    expect(recentQuery?.sql).toContain("m.mahasiswa_id");
 
     const scopedQueries = capturedQueries.filter(
       (q) =>
         q.sql.includes("FROM public.exercise_attempt") ||
-        q.sql.includes("FROM public.mahasiswa")
+        q.sql.includes("FROM public.mahasiswa") ||
+        q.sql.includes("FROM public.ai_usage")
     );
     expect(scopedQueries.length).toBeGreaterThan(0);
     for (const q of scopedQueries) {
       expect(q.sql).toContain("kelas_id IS NOT NULL");
     }
+
+    expect(body.material_performance).toEqual([
+      {
+        material_id: MAT_1_ID,
+        sequence: 1,
+        title: "Tipe Data Dasar",
+        submitted_attempts_count: 4,
+        avg_score: 82.5,
+      },
+      {
+        material_id: "40000000-0000-4000-8000-000000000002",
+        sequence: 2,
+        title: "Operator & Ekspresi",
+        submitted_attempts_count: 3,
+        avg_score: 65,
+      },
+      {
+        material_id: "40000000-0000-4000-8000-000000000003",
+        sequence: 3,
+        title: "Percabangan",
+        submitted_attempts_count: 0,
+        avg_score: null,
+      },
+    ]);
+
+    const matPerfQuery = capturedQueries.find((q) =>
+      q.sql.includes("WITH scoped_submitted AS")
+    );
+    expect(matPerfQuery?.sql).toContain("ea.status = 'SUBMITTED'");
+    expect(matPerfQuery?.sql).toContain("m.kelas_id IS NOT NULL");
+    expect(matPerfQuery?.sql).toContain("Asia/Makassar");
+
+    expect(body.ai_usage_summary).toEqual({
+      total_success_requests: 7,
+      active_students_count: 2,
+      daily_trend: [
+        { date: "2026-11-20", success_requests: 3 },
+        { date: "2026-11-21", success_requests: 4 },
+      ],
+    });
+    expect(JSON.stringify(body.ai_usage_summary)).not.toMatch(/prompt|email|nim/i);
+
+    const aiQueries = capturedQueries.filter((q) =>
+      q.sql.includes("FROM public.ai_usage au")
+    );
+    expect(aiQueries).toHaveLength(2);
+    for (const q of aiQueries) {
+      expect(q.sql).toContain("au.status = 'SUCCESS'");
+      expect(q.sql).toContain("m.kelas_id IS NOT NULL");
+      expect(q.sql).toContain("k.dosen_id = $1");
+    }
+
+    expect(body.post_test_readiness).toEqual({
+      total_required_exercises: 20,
+      total_students: 2,
+      ready_count: 1,
+      in_progress_count: 1,
+      not_started_count: 0,
+    });
+    expect(
+      body.post_test_readiness.ready_count +
+        body.post_test_readiness.in_progress_count +
+        body.post_test_readiness.not_started_count
+    ).toBe(body.post_test_readiness.total_students);
+
+    const readinessQuery = capturedQueries.find((q) =>
+      q.sql.includes("WITH required_ex AS")
+    );
+    expect(readinessQuery?.sql).toContain("FROM public.exercise");
+    expect(readinessQuery?.sql).toContain("ea.status = 'SUBMITTED'");
+    expect(readinessQuery?.sql).toContain("m.kelas_id IS NOT NULL");
+    expect(readinessQuery?.sql).toContain("k.dosen_id = $1");
   });
 
   it("GET /api/lecturer/activities/[attemptId] memproyeksikan kunci jawaban Read-Only (P13) & metode FIB Levenshtein >= 70%", async () => {
@@ -1077,5 +1221,79 @@ describe("Tahap 4 & 6 — Endpoint Dosen (§5), Manajemen Kelas, Keamanan, CSV &
 
     const envExampleSrc = fs.readFileSync(envExamplePath, "utf8");
     expect(envExampleSrc).toContain("NEXT_PUBLIC_GOOGLE_CLIENT_ID=");
+  });
+
+  it("halaman publik /panduan, tautan panduan di /, /login, & sidebar layout menjaga tepat 3 menu utama dan istilah UI rapi", () => {
+    const guidePagePath = path.resolve(process.cwd(), "src/app/panduan/page.tsx");
+    const homePagePath = path.resolve(process.cwd(), "src/app/page.tsx");
+    const loginPagePath = path.resolve(process.cwd(), "src/app/login/page.tsx");
+    const dashboardLayoutPath = path.resolve(
+      process.cwd(),
+      "src/app/(dashboard)/layout.tsx"
+    );
+    const chartsPath = path.resolve(
+      process.cwd(),
+      "src/components/charts/lecturer-charts.tsx"
+    );
+
+    expect(fs.existsSync(guidePagePath)).toBe(true);
+    const guideSrc = fs.readFileSync(guidePagePath, "utf8");
+    expect(guideSrc).toContain("PLAS");
+    expect(guideSrc).toContain("WITA");
+    expect(guideSrc).toContain("1 s.d. 19 dari 20 latihan");
+    expect(guideSrc).toContain("Levenshtein Similarity &gt;= 70%");
+    expect(guideSrc).toContain("403 Forbidden");
+    expect(guideSrc).toContain("zavitoanwari@gmail.com");
+    expect(guideSrc).toContain('href="/"');
+    expect(guideSrc).toContain('href="/dashboard"');
+    expect(guideSrc).toContain('href="/login"');
+    expect(guideSrc).toContain('href="/privacy"');
+    expect(guideSrc).toContain('href="/terms"');
+
+    const homeSrc = fs.readFileSync(homePagePath, "utf8");
+    expect(homeSrc).toContain('href="/panduan"');
+
+    const loginSrc = fs.readFileSync(loginPagePath, "utf8");
+    expect(loginSrc).toContain('href="/panduan"');
+
+    const dashLayoutSrc = fs.readFileSync(dashboardLayoutPath, "utf8");
+    expect(dashLayoutSrc).toContain('href="/panduan"');
+    const navMatch = dashLayoutSrc.match(/const NAV_ITEMS = \[([\s\S]*?)\] as const;/);
+    expect(navMatch).not.toBeNull();
+    const navHrefs = [...(navMatch?.[1] ?? "").matchAll(/href:\s*"([^"]+)"/g)].map(
+      (m) => m[1]
+    );
+    expect(navHrefs).toEqual(["/dashboard", "/classes", "/activities"]);
+
+    const chartsSrc = fs.readFileSync(chartsPath, "utf8");
+    expect(chartsSrc).toContain("Hanya tes selesai");
+    expect(chartsSrc).toContain("Permintaan berhasil (WITA)");
+    expect(chartsSrc).toContain("1 s.d.");
+    expect(chartsSrc).not.toContain("(DBR-15)");
+    expect(chartsSrc).toContain("<InfoPopover");
+
+    const infoPopoverPath = path.resolve(
+      process.cwd(),
+      "src/components/ui/info-popover.tsx"
+    );
+    expect(fs.existsSync(infoPopoverPath)).toBe(true);
+    const infoPopoverSrc = fs.readFileSync(infoPopoverPath, "utf8");
+    expect(infoPopoverSrc).toContain("Escape");
+    expect(infoPopoverSrc).toContain("pointerdown");
+    expect(infoPopoverSrc).toContain("aria-expanded");
+    expect(infoPopoverSrc).not.toMatch(/\btitle=/);
+
+    const infoTargetPages = [
+      "src/app/(dashboard)/dashboard/page.tsx",
+      "src/app/(dashboard)/classes/page.tsx",
+      "src/app/(dashboard)/classes/[kelasId]/page.tsx",
+      "src/app/(dashboard)/activities/page.tsx",
+    ];
+    for (const relPath of infoTargetPages) {
+      const src = fs.readFileSync(path.resolve(process.cwd(), relPath), "utf8");
+      expect(src, `Wajib menyertakan <InfoPopover di ${relPath}`).toContain(
+        "<InfoPopover"
+      );
+    }
   });
 });

@@ -190,6 +190,13 @@ export default function DashboardLayout({
           <LogOut className="h-4 w-4" />
           <span>Keluar</span>
         </button>
+        <Link
+          href="/panduan"
+          onClick={() => setMobileMenuOpen(false)}
+          className="mt-2 block px-2 py-1.5 text-center text-xs font-medium text-[var(--plas-text-muted)] transition-colors hover:text-[var(--plas-brand-primary)]"
+        >
+          Panduan Penggunaan Dosen
+        </Link>
       </div>
     </div>
   );

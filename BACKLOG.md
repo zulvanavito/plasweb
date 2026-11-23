@@ -13,7 +13,7 @@
 
 ---
 
-## Roadmap Bertahap (Tahap 1 s.d. Tahap 7)
+## Roadmap Bertahap (Tahap 1 s.d. Tahap 8)
 
 ### Tahap 1 — Fondasi Proyek, Schema SQL v0.3, RLS P4, Fungsi G1–G4, & Seed Resmi
 - [x] Dokumen kontrol proyek (`AGENTS.md`, `BACKLOG.md`, `CHANGELOG.md`)
@@ -62,10 +62,23 @@
 - [x] Memperbarui indikator loading `!authReady` di `src/app/(dashboard)/layout.tsx` menjadi cincin spinner `animate-spin` mengelilingi `PlasAppLogo` dengan status **PLAS-TypeScript** dan `role="status"` / `aria-live="polite"`
 - [x] Menambahkan uji kontrak & hygiene di `tests/stage4-lecturer-api-and-csv.test.ts` serta verifikasi penuh (`42/42` test Vitest, `npm run typecheck`, `npm run lint`, dan isolated `next build`)
 
+### Tahap 8 — Analitik Dashboard Tambahan (`material_performance`, `ai_usage_summary`, & Kesiapan Post-Test `DBR-15`) + Unduhan APK
+- [x] Migrasi SQL `009_lecturer_ai_usage_rls.sql` (dan diterapkan ke Supabase Dev `ehgamppardyppeoxscou`): memperluas policy `plas_api_select_ai_usage` pada `public.ai_usage` agar dosen dapat membaca statistik AI mahasiswa pada kelas yang diampu (`m.kelas_id IS NOT NULL`) secara Read-Only
+- [x] Memperbarui `LecturerDashboardDto` (`src/lib/dto/lecturer-mappers.ts`) & `getLecturerDashboard` (`src/lib/services/lecturer-analytics.ts`):
+  - `material_performance` untuk seluruh 7 Materi (`Materi 01`–`07`), menghitung `avg_score` hanya dari `exercise_attempt` `SUBMITTED` pada kelas dosen (materi tanpa attempt `SUBMITTED` bernilai `null` sesuai `WEB-BR-009`)
+  - `ai_usage_summary` (`total_success_requests`, `active_students_count`, `daily_trend`) dari `public.ai_usage` (`status = 'SUCCESS'`, `m.kelas_id IS NOT NULL`, agregat anonim tanpa prompt/PII)
+  - `post_test_readiness` (`total_required_exercises`, `total_students`, `ready_count`, `in_progress_count`, `not_started_count`) secara kumulatif per mahasiswa berkelas untuk memantau prasyarat `DBR-15`
+- [x] Menambahkan komponen `MaterialPerformanceChart` (sorotan topik tersulit), `AiUsageSummaryPanel`, dan `PostTestReadinessChart` (stacked bar + 3 ringkasan `20 dari 20`, `1 s.d. 19 dari 20`, `0 dari 20`) dengan istilah bahasa Indonesia yang ramah dosen di `src/components/charts/lecturer-charts.tsx` serta mengintegrasikannya pada `/dashboard` (`src/app/(dashboard)/dashboard/page.tsx`)
+- [x] Menambahkan komponen `InfoCircle` (`src/components/ui/icons.tsx`) & `<InfoPopover />` aksesibel (`src/components/ui/info-popover.tsx`, mendukung klik/tap, `Escape`, outside-click, serta responsif `< 640px`) pada metrik/aturan khusus di `/dashboard`, `/classes`, `/classes/[kelasId]`, dan `/activities`
+- [x] Menambahkan halaman publik **Panduan Penggunaan Dosen** (`/panduan` pada `src/app/panduan/page.tsx`) beserta tautan navigasi dari `/`, `/login`, dan footer sidebar `src/app/(dashboard)/layout.tsx` (tetap mengunci `NAV_ITEMS` tepat 3 menu utama)
+- [x] Menambahkan interaksi *quick drill-down* pada panel **Aktivitas Pembelajaran Terbaru** di `/dashboard` (`mahasiswa_id` pada `recent_activities`, klik item `EXERCISE` -> `ActivityDetailModal`, klik item `TEST` -> `EvaluationDetailModal`, tautan **Lihat Semua** -> `/activities`) serta memperbarui label KPI `Kelas Diampu` menjadi `Kelola di menu Data Kelas`
+- [x] Menambahkan tombol **Unduh Aplikasi Android (APK)** (`PLAS-TypeScript.apk`) & panduan instalasi mobile pada `src/app/page.tsx`
+- [x] Memperbarui uji di `tests/stage1-sql-seed.test.ts` & `tests/stage4-lecturer-api-and-csv.test.ts` (`7` berkas / `44` test Vitest lulus, `npm run typecheck`, `npm run lint`, dan `npm run build` terisolasi lulus)
+
 ---
 
 ## Status Terakhir & Langkah Lanjutan (Handoff)
-- **Posisi terakhir:** Seluruh implementasi **Tahap 1 s.d. Tahap 7** selesai dan terverifikasi (`7` berkas / `42` test Vitest lulus, `npm run typecheck`, `npm run lint`, dan `npm run build` terisolasi lulus). Migrasi SQL `001`–`008` terpasang di Supabase Dev.
+- **Posisi terakhir:** Seluruh implementasi **Tahap 1 s.d. Tahap 8** selesai dan terverifikasi (`7` berkas / `44` test Vitest lulus, `npm run typecheck`, `npm run lint`, dan `npm run build` terisolasi lulus). Migrasi SQL `001`–`009` terpasang di Supabase Dev.
 - **Catatan operasional:**
   - Pastikan `NEXT_PUBLIC_GOOGLE_CLIENT_ID` terisi di environment produksi/lokal dan Client ID Google Web tersebut terdaftar di pengaturan Google provider Supabase Auth agar tombol GIS `signInWithIdToken` aktif pada `/login`.
   - Bila menjalankan `npm run db:regress` (`DBT-01`–`DBT-30`) di masa depan, jalankan **hanya** pada scratch PostgreSQL DB terpisah (**jangan** jalankan pada Supabase Dev karena `scripts/regress.mjs` menghapus schema `public`).
