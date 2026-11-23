@@ -1039,6 +1039,12 @@ describe("Tahap 4 & 6 — Endpoint Dosen (§5), Manajemen Kelas, Keamanan, CSV &
     expect(homeSrc).toContain('href="/login"');
     expect(homeSrc).toContain('href="/privacy"');
     expect(homeSrc).toContain('href="/terms"');
+    expect(homeSrc).toContain(
+      "https://github.com/zulvanavito/plasmobile/releases/latest/download/PLAS-TypeScript.apk"
+    );
+    expect(homeSrc).toContain("https://github.com/zulvanavito/plasmobile/releases");
+    expect(homeSrc).toContain('rel="noopener noreferrer"');
+    expect(homeSrc).toContain("00:00 WITA");
 
     const privacySrc = fs.readFileSync(privacyPagePath, "utf8");
     expect(privacySrc).toContain("PLAS");
