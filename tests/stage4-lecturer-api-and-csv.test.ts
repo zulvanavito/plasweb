@@ -73,6 +73,7 @@ vi.mock("@/lib/db/pool", async () => {
 import * as lecturerActivitiesRoute from "@/app/api/lecturer/activities/route";
 import * as lecturerActivityDetailRoute from "@/app/api/lecturer/activities/[attemptId]/route";
 import * as lecturerClassDetailRoute from "@/app/api/lecturer/classes/[kelasId]/route";
+import * as lecturerClassStudentRoute from "@/app/api/lecturer/classes/[kelasId]/students/[mahasiswaId]/route";
 import * as lecturerClassesRoute from "@/app/api/lecturer/classes/route";
 import * as lecturerDashboardRoute from "@/app/api/lecturer/dashboard/route";
 import * as lecturerEvaluationDetailRoute from "@/app/api/lecturer/evaluations/[mahasiswaId]/route";
@@ -497,17 +498,15 @@ function defaultLecturerHandler(
   throw new Error(`Unexpected SQL in test mock: ${sql}`);
 }
 
-describe("Tahap 4 — 8 Endpoint Dosen Read-Only (§5), Keamanan, CSV & UI Hygiene", () => {
+describe("Tahap 4 & 6 — Endpoint Dosen (§5), Manajemen Kelas, Keamanan, CSV & UI Hygiene", () => {
   beforeEach(() => {
     capturedQueries = [];
     activeDbHandler = defaultLecturerHandler;
   });
 
-  it("semua 8 route /api/lecturer/* hanya mengekspor GET tanpa POST/PATCH/PUT/DELETE (SEC-09)", () => {
-    const routeModules = [
+  it("6 route analitik/evaluasi /api/lecturer/* tetap strictly GET-only (SEC-09), sedangkan mutasi terbatas pada manajemen kelas", () => {
+    const readOnlyAnalyticsModules = [
       lecturerDashboardRoute,
-      lecturerClassesRoute,
-      lecturerClassDetailRoute,
       lecturerActivitiesRoute,
       lecturerActivityDetailRoute,
       lecturerEvaluationsRoute,
@@ -515,7 +514,7 @@ describe("Tahap 4 — 8 Endpoint Dosen Read-Only (§5), Keamanan, CSV & UI Hygie
       lecturerEvaluationsExportRoute,
     ];
 
-    for (const mod of routeModules) {
+    for (const mod of readOnlyAnalyticsModules) {
       const record = mod as Record<string, unknown>;
       expect(typeof record.GET).toBe("function");
       expect(record.POST).toBeUndefined();
@@ -523,6 +522,27 @@ describe("Tahap 4 — 8 Endpoint Dosen Read-Only (§5), Keamanan, CSV & UI Hygie
       expect(record.PUT).toBeUndefined();
       expect(record.DELETE).toBeUndefined();
     }
+
+    const classesMod = lecturerClassesRoute as Record<string, unknown>;
+    expect(typeof classesMod.GET).toBe("function");
+    expect(typeof classesMod.POST).toBe("function");
+    expect(classesMod.PATCH).toBeUndefined();
+    expect(classesMod.PUT).toBeUndefined();
+    expect(classesMod.DELETE).toBeUndefined();
+
+    const classDetailMod = lecturerClassDetailRoute as Record<string, unknown>;
+    expect(typeof classDetailMod.GET).toBe("function");
+    expect(typeof classDetailMod.PATCH).toBe("function");
+    expect(typeof classDetailMod.DELETE).toBe("function");
+    expect(classDetailMod.POST).toBeUndefined();
+    expect(classDetailMod.PUT).toBeUndefined();
+
+    const classStudentMod = lecturerClassStudentRoute as Record<string, unknown>;
+    expect(typeof classStudentMod.DELETE).toBe("function");
+    expect(classStudentMod.GET).toBeUndefined();
+    expect(classStudentMod.POST).toBeUndefined();
+    expect(classStudentMod.PATCH).toBeUndefined();
+    expect(classStudentMod.PUT).toBeUndefined();
   });
 
   it("menolak tanpa JWT (401) dan menolak mahasiswa / non-dosen (403 forbidden, SEC-13)", async () => {
@@ -783,5 +803,220 @@ describe("Tahap 4 — 8 Endpoint Dosen Read-Only (§5), Keamanan, CSV & UI Hygie
         `Dilarang label 'Regex Evaluator' di ${file}`
       ).not.toContain("Regex Evaluator");
     }
+  });
+
+  it("POST/PATCH/DELETE /api/lecturer/classes dan DELETE student menguji CRUD kelas dosen & error mapping", async () => {
+    const newClassId = "30000000-0000-4000-8000-000000000055";
+
+    activeDbHandler = (sql, params) => {
+      if (sql.includes("FROM public.dosen") && sql.includes("WHERE auth_user_id")) {
+        return {
+          rows: [
+            {
+              dosen_id: DOSEN_ID,
+              nidn: "0011223344",
+              nama: "Dr. Putu Dosen",
+              email: "dosen@undiksha.ac.id",
+            },
+          ],
+        };
+      }
+      if (sql.includes("fn_lecturer_create_class")) {
+        if (params?.[1] === "TI-DUP-2026") {
+          throw Object.assign(new Error("duplicate key value violates unique constraint \"kelas_kode_key\""), {
+            code: "23505",
+            constraint: "kelas_kode_key",
+          });
+        }
+        return {
+          rows: [
+            {
+              kelas_id: newClassId,
+              nama: params?.[0],
+              kode: params?.[1],
+              tahun_akademik: params?.[2],
+              semester: params?.[3],
+            },
+          ],
+        };
+      }
+      if (sql.includes("fn_lecturer_update_class")) {
+        if (params?.[0] === OTHER_KELAS_ID) {
+          throw Object.assign(new Error("kelas tidak ditemukan"), { code: "P0002" });
+        }
+        return {
+          rows: [
+            {
+              kelas_id: params?.[0],
+              nama: params?.[1],
+              kode: params?.[2],
+              tahun_akademik: params?.[3],
+              semester: params?.[4],
+            },
+          ],
+        };
+      }
+      if (sql.includes("COUNT(mahasiswa_id)::int AS student_count")) {
+        return { rows: [{ student_count: 14 }] };
+      }
+      if (sql.includes("fn_lecturer_delete_class")) {
+        return { rows: [{ kelas_id: params?.[0] }] };
+      }
+      if (sql.includes("fn_lecturer_remove_student_from_class")) {
+        if (params?.[1] === OTHER_MHS_ID) {
+          throw Object.assign(new Error("mahasiswa tidak terdaftar di kelas ini"), {
+            code: "P0002",
+          });
+        }
+        return { rows: [{ mahasiswa_id: params?.[1] }] };
+      }
+      return defaultLecturerHandler(sql, params);
+    };
+
+    // 1. POST /api/lecturer/classes valid -> 201 + uppercase kode
+    const createRes = await lecturerClassesRoute.POST(
+      new Request("http://localhost/api/lecturer/classes", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer dev-lecturer-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          nama: "Pemrograman TypeScript C",
+          kode: "ti-2c-2026",
+          tahun_akademik: "2026/2027",
+          semester: "Ganjil",
+        }),
+      })
+    );
+    expect(createRes.status).toBe(201);
+    const createdJson = await createRes.json();
+    expect(createdJson.kode).toBe("TI-2C-2026");
+    expect(createdJson.student_count).toBe(0);
+
+    // 2. POST duplicate kode -> 409 class_code_conflict
+    const dupRes = await lecturerClassesRoute.POST(
+      new Request("http://localhost/api/lecturer/classes", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer dev-lecturer-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          nama: "Kelas Duplikat",
+          kode: "TI-DUP-2026",
+          tahun_akademik: "2026/2027",
+          semester: "Genap",
+        }),
+      })
+    );
+    expect(dupRes.status).toBe(409);
+    expect((await dupRes.json()).error.code).toBe("class_code_conflict");
+
+    // 3. POST format tahun_akademik tidak valid -> 400 validation_error
+    const invalidRes = await lecturerClassesRoute.POST(
+      new Request("http://localhost/api/lecturer/classes", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer dev-lecturer-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          nama: "Kelas Invalid",
+          kode: "TI-INV",
+          tahun_akademik: "2026",
+          semester: "Pendek",
+        }),
+      })
+    );
+    expect(invalidRes.status).toBe(400);
+    expect((await invalidRes.json()).error.code).toBe("validation_error");
+
+    // 4. PATCH kelas sendiri -> 200; kelas dosen lain -> 404
+    const patchOk = await lecturerClassDetailRoute.PATCH(
+      new Request(`http://localhost/api/lecturer/classes/${KELAS_A_ID}`, {
+        method: "PATCH",
+        headers: {
+          authorization: "Bearer dev-lecturer-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          nama: "TypeScript A Revisi",
+          kode: "TI-2A-2026",
+          tahun_akademik: "2026/2027",
+          semester: "Genap",
+        }),
+      }),
+      { params: Promise.resolve({ kelasId: KELAS_A_ID }) }
+    );
+    expect(patchOk.status).toBe(200);
+    const patchJson = await patchOk.json();
+    expect(patchJson.student_count).toBe(14);
+    expect(patchJson.semester).toBe("Genap");
+
+    const patchForbidden = await lecturerClassDetailRoute.PATCH(
+      new Request(`http://localhost/api/lecturer/classes/${OTHER_KELAS_ID}`, {
+        method: "PATCH",
+        headers: {
+          authorization: "Bearer dev-lecturer-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          nama: "Bajak Kelas",
+          kode: "TI-99",
+          tahun_akademik: "2026/2027",
+          semester: "Ganjil",
+        }),
+      }),
+      { params: Promise.resolve({ kelasId: OTHER_KELAS_ID }) }
+    );
+    expect(patchForbidden.status).toBe(404);
+
+    // 5. DELETE mahasiswa dari kelas -> 200; bukan di kelas -> 404
+    const removeOk = await lecturerClassStudentRoute.DELETE(
+      new Request(
+        `http://localhost/api/lecturer/classes/${KELAS_A_ID}/students/${MHS_1_ID}`,
+        {
+          method: "DELETE",
+          headers: { authorization: "Bearer dev-lecturer-token" },
+        }
+      ),
+      { params: Promise.resolve({ kelasId: KELAS_A_ID, mahasiswaId: MHS_1_ID }) }
+    );
+    expect(removeOk.status).toBe(200);
+    expect(await removeOk.json()).toEqual({
+      removed_mahasiswa_id: MHS_1_ID,
+      kelas_id: KELAS_A_ID,
+    });
+
+    const removeMissing = await lecturerClassStudentRoute.DELETE(
+      new Request(
+        `http://localhost/api/lecturer/classes/${KELAS_A_ID}/students/${OTHER_MHS_ID}`,
+        {
+          method: "DELETE",
+          headers: { authorization: "Bearer dev-lecturer-token" },
+        }
+      ),
+      {
+        params: Promise.resolve({
+          kelasId: KELAS_A_ID,
+          mahasiswaId: OTHER_MHS_ID,
+        }),
+      }
+    );
+    expect(removeMissing.status).toBe(404);
+
+    // 6. DELETE kelas -> 200
+    const deleteClassRes = await lecturerClassDetailRoute.DELETE(
+      new Request(`http://localhost/api/lecturer/classes/${KELAS_A_ID}`, {
+        method: "DELETE",
+        headers: { authorization: "Bearer dev-lecturer-token" },
+      }),
+      { params: Promise.resolve({ kelasId: KELAS_A_ID }) }
+    );
+    expect(deleteClassRes.status).toBe(200);
+    expect(await deleteClassRes.json()).toEqual({
+      deleted_kelas_id: KELAS_A_ID,
+    });
   });
 });

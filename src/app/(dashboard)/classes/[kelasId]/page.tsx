@@ -1,24 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ClassFormModal,
+  ConfirmActionModal,
+} from "@/components/lecturer/class-form-modal";
 import { EvaluationDetailModal } from "@/components/lecturer/evaluation-detail-modal";
 import {
   ArrowLeft,
   DownloadTray,
+  PencilSquare,
   SearchMagnifier,
+  TrashCan,
+  UserRemove,
 } from "@/components/ui/icons";
 import { EmptyState } from "@/components/ui/owl-mascot";
 import { ErrorBanner, SkeletonBlock } from "@/components/ui/states";
 import {
   downloadLecturerCsv,
   lecturerFetch,
+  lecturerMutate,
   LecturerClientError,
 } from "@/lib/api/lecturer-client";
-import type { LecturerClassDetailDto } from "@/lib/dto/lecturer-mappers";
+import type {
+  LecturerClassDetailDto,
+  LecturerClassStudentRowDto,
+} from "@/lib/dto/lecturer-mappers";
 
 export default function ClassDetailPage() {
+  const router = useRouter();
   const params = useParams<{ kelasId: string }>();
   const kelasId = params?.kelasId ?? "";
 
@@ -30,6 +42,10 @@ export default function ClassDetailPage() {
   const [selectedMahasiswaId, setSelectedMahasiswaId] = useState<string | null>(
     null
   );
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteClassOpen, setDeleteClassOpen] = useState(false);
+  const [removingStudent, setRemovingStudent] =
+    useState<LecturerClassStudentRowDto | null>(null);
 
   const loadDetail = useCallback(async () => {
     if (!kelasId) return;
@@ -97,15 +113,33 @@ export default function ClassDetailPage() {
         </Link>
 
         {data ? (
-          <button
-            type="button"
-            onClick={() => void handleExportCsv()}
-            disabled={exporting}
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-[var(--plas-radius-md)] bg-[var(--plas-brand-primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--plas-brand-hover)] disabled:cursor-not-allowed disabled:bg-[var(--plas-disabled-bg)] disabled:text-[var(--plas-disabled-text)]"
-          >
-            <DownloadTray className="h-4 w-4" />
-            <span>{exporting ? "Mengunduh..." : "Unduh CSV"}</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(true)}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3.5 text-sm font-semibold text-[var(--plas-text-primary)] hover:bg-[var(--plas-bg-subtle)]"
+            >
+              <PencilSquare className="h-4 w-4" />
+              <span>Edit Kelas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteClassOpen(true)}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-[var(--plas-radius-md)] border border-[var(--plas-error-border)] bg-[var(--plas-error-bg)] px-3.5 text-sm font-semibold text-[var(--plas-error-text)] hover:opacity-90"
+            >
+              <TrashCan className="h-4 w-4" />
+              <span>Hapus Kelas</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleExportCsv()}
+              disabled={exporting}
+              className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-[var(--plas-radius-md)] bg-[var(--plas-brand-primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--plas-brand-hover)] disabled:cursor-not-allowed disabled:bg-[var(--plas-disabled-bg)] disabled:text-[var(--plas-disabled-text)]"
+            >
+              <DownloadTray className="h-4 w-4" />
+              <span>{exporting ? "Mengunduh..." : "Unduh CSV"}</span>
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -162,7 +196,7 @@ export default function ClassDetailPage() {
                     <th className="px-4 py-3 text-right">Rata-rata Latihan</th>
                     <th className="px-4 py-3 text-right">Pre-Test</th>
                     <th className="px-4 py-3 text-right">Post-Test</th>
-                    <th className="px-4 py-3 text-right">Detail</th>
+                    <th className="px-4 py-3 text-right">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--plas-border-subtle)]">
@@ -193,13 +227,24 @@ export default function ClassDetailPage() {
                           : "Belum dikumpulkan"}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMahasiswaId(s.mahasiswa_id)}
-                          className="min-h-[44px] cursor-pointer rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-xs font-semibold text-[var(--plas-text-primary)] hover:bg-[var(--plas-bg-subtle)]"
-                        >
-                          Lihat Evaluasi
-                        </button>
+                        <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedMahasiswaId(s.mahasiswa_id)}
+                            className="min-h-[44px] cursor-pointer rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-xs font-semibold text-[var(--plas-text-primary)] hover:bg-[var(--plas-bg-subtle)]"
+                          >
+                            Lihat Evaluasi
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRemovingStudent(s)}
+                            aria-label={`Keluarkan ${s.nama} dari kelas`}
+                            className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[var(--plas-radius-md)] border border-[var(--plas-error-border)] bg-[var(--plas-error-bg)] px-3 text-xs font-semibold text-[var(--plas-error-text)] hover:opacity-90"
+                          >
+                            <UserRemove className="h-4 w-4" />
+                            <span>Keluarkan</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -213,6 +258,67 @@ export default function ClassDetailPage() {
       <EvaluationDetailModal
         mahasiswaId={selectedMahasiswaId}
         onClose={() => setSelectedMahasiswaId(null)}
+      />
+
+      <ClassFormModal
+        open={editModalOpen}
+        mode="edit"
+        initialClass={data?.kelas ?? null}
+        onClose={() => setEditModalOpen(false)}
+        onSaved={() => {
+          setEditModalOpen(false);
+          void loadDetail();
+        }}
+      />
+
+      <ConfirmActionModal
+        open={deleteClassOpen}
+        title={data ? `Hapus Kelas ${data.kelas.kode}?` : "Hapus Kelas?"}
+        description={
+          data
+            ? `Kelas "${data.kelas.nama}" (${data.kelas.student_count} mahasiswa) akan dihapus. Mahasiswa yang masih tergabung akan otomatis menjadi Pengguna Umum dan dapat memasukkan kembali kode kelas baru tanpa kehilangan riwayat nilai Pre-Test, Post-Test, maupun latihan.`
+            : ""
+        }
+        confirmLabel="Ya, Hapus Kelas"
+        confirmingLabel="Menghapus..."
+        onClose={() => setDeleteClassOpen(false)}
+        onConfirm={async () => {
+          await lecturerMutate<{ deleted_kelas_id: string }>(
+            `/api/lecturer/classes/${encodeURIComponent(kelasId)}`,
+            { method: "DELETE" }
+          );
+          setDeleteClassOpen(false);
+          router.push("/classes");
+        }}
+      />
+
+      <ConfirmActionModal
+        open={removingStudent !== null}
+        title={
+          removingStudent
+            ? `Keluarkan ${removingStudent.nama} dari Kelas?`
+            : "Keluarkan Mahasiswa?"
+        }
+        description={
+          removingStudent
+            ? `Mahasiswa ${removingStudent.nama} (NIM ${removingStudent.nim}) akan dikeluarkan dari kelas ${data?.kelas.kode ?? ""} dan menjadi Pengguna Umum. Riwayat nilai Pre-Test, Post-Test, dan latihan tetap tersimpan dan langsung tersinkron saat mahasiswa tersebut memilih kelas lain di aplikasi mobile.`
+            : ""
+        }
+        confirmLabel="Ya, Keluarkan"
+        confirmingLabel="Mengeluarkan..."
+        onClose={() => setRemovingStudent(null)}
+        onConfirm={async () => {
+          if (!removingStudent) return;
+          await lecturerMutate<{
+            removed_mahasiswa_id: string;
+            kelas_id: string;
+          }>(
+            `/api/lecturer/classes/${encodeURIComponent(kelasId)}/students/${encodeURIComponent(removingStudent.mahasiswa_id)}`,
+            { method: "DELETE" }
+          );
+          setRemovingStudent(null);
+          await loadDetail();
+        }}
       />
     </div>
   );

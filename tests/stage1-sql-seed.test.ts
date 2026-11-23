@@ -6,7 +6,9 @@ const ROOT_DIR = path.resolve(__dirname, "..");
 const MIGRATIONS_DIR = path.join(ROOT_DIR, "supabase", "migrations");
 
 function readMigration(filename: string): string {
-  return fs.readFileSync(path.join(MIGRATIONS_DIR, filename), "utf8");
+  return fs
+    .readFileSync(path.join(MIGRATIONS_DIR, filename), "utf8")
+    .replace(/\r\n/g, "\n");
 }
 
 function normalizeFib(input: string): string {
@@ -46,7 +48,7 @@ function evaluateFib(studentAnswer: string, expectedAnswer: string): boolean {
 }
 
 describe("Tahap 1 — Migrasi SQL & Seed Resmi PLAS-TypeScript", () => {
-  it("memiliki 7 berkas migrasi terurut 001 sampai 007", () => {
+  it("memiliki 8 berkas migrasi terurut 001 sampai 008", () => {
     const files = fs
       .readdirSync(MIGRATIONS_DIR)
       .filter((f) => f.endsWith(".sql"))
@@ -60,6 +62,7 @@ describe("Tahap 1 — Migrasi SQL & Seed Resmi PLAS-TypeScript", () => {
       "005_functions_triggers_g4_ai.sql",
       "006_rls_grants_p4.sql",
       "007_seed_official_content.sql",
+      "008_lecturer_class_crud.sql",
     ]);
   });
 
@@ -223,5 +226,34 @@ describe("Tahap 1 — Migrasi SQL & Seed Resmi PLAS-TypeScript", () => {
     expect(evaluateFib("abcdefghij", "abcdefgxxx")).toBe(true); // 0.70 tepat
     expect(evaluateFib("abcdefghij", "abcdefxxxx")).toBe(false); // 0.60 ditolak
     expect(evaluateFib("a".repeat(256), "a")).toBe(false);
+  });
+
+  it("008_lecturer_class_crud mendefinisikan RPC CRUD kelas dosen yang aman dan merelaksasi DBR-14 saat kelas_id IS NULL", () => {
+    const m008 = readMigration("008_lecturer_class_crud.sql");
+
+    expect(m008).toContain("OLD.kelas_id IS NOT NULL");
+    expect(m008).toContain("NEW.kelas_id IS NOT NULL");
+    expect(m008).toContain("fn_g1_kelas_lock()");
+
+    const rpcNames = [
+      "fn_lecturer_create_class",
+      "fn_lecturer_update_class",
+      "fn_lecturer_delete_class",
+      "fn_lecturer_remove_student_from_class",
+    ];
+    for (const fnName of rpcNames) {
+      expect(m008).toContain(fnName);
+    }
+
+    const secDefBlocks = [
+      ...m008.matchAll(/SECURITY DEFINER[\s\S]{0,120}?AS \$\$/g),
+    ].map((m) => m[0]);
+    expect(secDefBlocks).toHaveLength(5);
+    for (const block of secDefBlocks) {
+      expect(block).toContain("SET search_path = public, extensions, pg_temp");
+    }
+
+    expect(m008).toContain("TO plas_api;");
+    expect(m008).not.toMatch(/GRANT\s+(INSERT|UPDATE|DELETE)\s+ON\s+public\./i);
   });
 });

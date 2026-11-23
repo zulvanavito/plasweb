@@ -25,7 +25,10 @@ import {
 } from "@/lib/dto/student-mappers";
 import { ApiError } from "@/lib/http/errors";
 import { buildEvaluationsCsv } from "@/lib/services/lecturer-csv";
-import type { CanonicalStudentAnswer } from "@/lib/validation/schemas";
+import type {
+  CanonicalStudentAnswer,
+  LecturerClassPayload,
+} from "@/lib/validation/schemas";
 
 const FIB_EVALUATION_LABEL =
   "Case-insensitive + Trim + Levenshtein Similarity >= 70%";
@@ -1235,5 +1238,119 @@ export async function exportLecturerEvaluationsCsv(
   return {
     filename: `evaluasi-${safeCode}.csv`,
     csv,
+  };
+}
+
+export async function createLecturerClass(
+  db: DbClient,
+  auth: AuthContext,
+  input: LecturerClassPayload
+): Promise<LecturerClassSummaryDto> {
+  const lecturer = await requireLecturer(db, auth);
+  const res = await db.query<{
+    kelas_id: string;
+    nama: string;
+    kode: string;
+    tahun_akademik: string;
+    semester: string;
+  }>(
+    `SELECT kelas_id, nama, kode, tahun_akademik, semester
+     FROM public.fn_lecturer_create_class($1, $2, $3, $4)`,
+    [input.nama, input.kode, input.tahun_akademik, input.semester]
+  );
+
+  const row = res.rows[0];
+  if (!row) {
+    throw new ApiError(500, "server_error");
+  }
+
+  return {
+    kelas_id: row.kelas_id,
+    nama: row.nama,
+    kode: row.kode,
+    tahun_akademik: row.tahun_akademik,
+    semester: row.semester,
+    dosen_nama: lecturer.nama,
+    student_count: 0,
+  };
+}
+
+export async function updateLecturerClass(
+  db: DbClient,
+  auth: AuthContext,
+  kelasId: string,
+  input: LecturerClassPayload
+): Promise<LecturerClassSummaryDto> {
+  const lecturer = await requireLecturer(db, auth);
+  const res = await db.query<{
+    kelas_id: string;
+    nama: string;
+    kode: string;
+    tahun_akademik: string;
+    semester: string;
+  }>(
+    `SELECT kelas_id, nama, kode, tahun_akademik, semester
+     FROM public.fn_lecturer_update_class($1, $2, $3, $4, $5)`,
+    [kelasId, input.nama, input.kode, input.tahun_akademik, input.semester]
+  );
+
+  const row = res.rows[0];
+  if (!row) {
+    throw new ApiError(404, "not_found");
+  }
+
+  const countRes = await db.query<{ student_count: number | string }>(
+    `SELECT COUNT(mahasiswa_id)::int AS student_count
+     FROM public.mahasiswa
+     WHERE kelas_id = $1`,
+    [kelasId]
+  );
+
+  return {
+    kelas_id: row.kelas_id,
+    nama: row.nama,
+    kode: row.kode,
+    tahun_akademik: row.tahun_akademik,
+    semester: row.semester,
+    dosen_nama: lecturer.nama,
+    student_count: Number(countRes.rows[0]?.student_count ?? 0),
+  };
+}
+
+export async function deleteLecturerClass(
+  db: DbClient,
+  auth: AuthContext,
+  kelasId: string
+): Promise<{ deleted_kelas_id: string }> {
+  await requireLecturer(db, auth);
+  const res = await db.query<{ kelas_id: string }>(
+    `SELECT public.fn_lecturer_delete_class($1) AS kelas_id`,
+    [kelasId]
+  );
+  const row = res.rows[0];
+  if (!row) {
+    throw new ApiError(404, "not_found");
+  }
+  return { deleted_kelas_id: row.kelas_id };
+}
+
+export async function removeStudentFromLecturerClass(
+  db: DbClient,
+  auth: AuthContext,
+  kelasId: string,
+  mahasiswaId: string
+): Promise<{ removed_mahasiswa_id: string; kelas_id: string }> {
+  await requireLecturer(db, auth);
+  const res = await db.query<{ mahasiswa_id: string }>(
+    `SELECT public.fn_lecturer_remove_student_from_class($1, $2) AS mahasiswa_id`,
+    [kelasId, mahasiswaId]
+  );
+  const row = res.rows[0];
+  if (!row) {
+    throw new ApiError(404, "not_found");
+  }
+  return {
+    removed_mahasiswa_id: row.mahasiswa_id,
+    kelas_id: kelasId,
   };
 }

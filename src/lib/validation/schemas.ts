@@ -27,6 +27,25 @@ export const updateClassSchema = z
   })
   .strict();
 
+export const lecturerClassPayloadSchema = z
+  .object({
+    nama: z.string().trim().min(1).max(255),
+    kode: z
+      .string()
+      .trim()
+      .min(1)
+      .max(50)
+      .transform((v) => v.toUpperCase()),
+    tahun_akademik: z
+      .string()
+      .trim()
+      .regex(/^\d{4}\/\d{4}$/, "Tahun akademik harus berformat YYYY/YYYY."),
+    semester: z.enum(["Ganjil", "Genap"]),
+  })
+  .strict();
+
+export type LecturerClassPayload = z.infer<typeof lecturerClassPayloadSchema>;
+
 export function parseCanonicalAnswer(raw: unknown): CanonicalStudentAnswer {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new ApiError(422, "invalid_answer");

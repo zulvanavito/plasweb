@@ -13,7 +13,7 @@
 
 ---
 
-## Roadmap Bertahap (Tahap 1 s.d. Tahap 5)
+## Roadmap Bertahap (Tahap 1 s.d. Tahap 6)
 
 ### Tahap 1 — Fondasi Proyek, Schema SQL v0.3, RLS P4, Fungsi G1–G4, & Seed Resmi
 - [x] Dokumen kontrol proyek (`AGENTS.md`, `BACKLOG.md`, `CHANGELOG.md`)
@@ -48,9 +48,16 @@
 - [x] Audit keamanan statis/kontrak, dukungan Groq, & perbaikan runtime (`SEC-01`–`SEC-14`, `tests/stage5-security-audit.test.ts`, `GroqAiProvider` via `AI_PROVIDER=groq`, perbaikan `src/instrumentation.ts` & `next.config.ts` untuk `next dev`, `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`)
 - [x] Verifikasi manual/live pengguna: uji silang live `plasmobile` <-> `plasweb` <-> Supabase Dev, database & AI Socratic terkonfirmasi berjalan sesuai rancangan
 
+### Tahap 6 — Manajemen Kelas Dosen (CRUD Kelas, Keluarkan Mahasiswa, & Relaksasi Re-join `DBR-14`)
+- [x] Migrasi SQL `008_lecturer_class_crud.sql` di Supabase Dev: relaksasi trigger `fn_g1_kelas_lock()` (`DBR-14`) saat `kelas_id IS NULL`, serta 4 RPC `SECURITY DEFINER` dosen (`fn_lecturer_create_class`, `fn_lecturer_update_class`, `fn_lecturer_delete_class`, `fn_lecturer_remove_student_from_class`) dengan `GRANT EXECUTE` khusus `plas_api`
+- [x] Backend & Endpoint REST: `POST /api/lecturer/classes`, `PATCH/DELETE /api/lecturer/classes/[kelasId]`, `DELETE /api/lecturer/classes/[kelasId]/students/[mahasiswaId]`, mapping error `409 class_code_conflict`, serta sinkronisasi `pre_test_submitted` pada `GET /api/me` (`m.kelas_id IS NOT NULL`) agar mahasiswa yang dikeluarkan/kelasnya dihapus bisa bergabung kembali dan menyinkronkan seluruh nilai
+- [x] UI Web Dosen (`W03`): tombol `Buat Kelas Baru`, `Edit`, `Hapus`, & `Keluarkan` beserta modal form `ClassFormModal` dan konfirmasi `ConfirmActionModal` pada `/classes` dan `/classes/[kelasId]`
+- [x] Pembaruan suite uji (`tests/stage1`, `stage2`, `stage4`, `stage5`) & sinkronisasi dokumen (`AGENTS.md`, `BACKLOG.md`, `CHANGELOG.md`, `README.md`, `walkthrough.md`)
+
 ---
 
 ## Status Terakhir & Langkah Lanjutan (Handoff)
-- **Posisi terakhir:** Seluruh implementasi **Tahap 1 s.d. Tahap 5** selesai dan terverifikasi (`7` berkas / `39` test Vitest lulus, `npm run typecheck`, `npm run lint`, dan `npm run build` lulus). Migrasi SQL `001`–`007` plus akun dosen dev & kelas `TI-2A-2026` terpasang di Supabase Dev, serta pengujian live database dan AI oleh pengguna telah berjalan sesuai rancangan.
+- **Posisi terakhir:** Seluruh implementasi **Tahap 1 s.d. Tahap 6** selesai dan terverifikasi (`7` berkas / `41` test Vitest lulus, `npm run typecheck`, `npm run lint`, dan `npm run build` lulus). Migrasi SQL `001`–`008` terpasang di Supabase Dev.
 - **Catatan operasional:**
   - Bila menjalankan `npm run db:regress` (`DBT-01`–`DBT-30`) di masa depan, jalankan **hanya** pada scratch PostgreSQL DB terpisah (**jangan** jalankan pada Supabase Dev karena `scripts/regress.mjs` menghapus schema `public`).
+  - Lanjutkan sinkronisasi di sisi aplikasi mobile (`plasmobile`) menggunakan prompt penyesuaian `isClassLocked` bila diperlukan agar UI mobile selaras penuh untuk skenario `kelas == null && preTestSubmitted == true`.

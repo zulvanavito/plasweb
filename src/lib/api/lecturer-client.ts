@@ -54,6 +54,44 @@ export async function lecturerFetch<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+export async function lecturerMutate<T>(
+  path: string,
+  options: { method: "POST" | "PATCH" | "DELETE"; body?: unknown }
+): Promise<T> {
+  const token = await getAccessTokenOrThrow();
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  };
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const res = await fetch(path, {
+    method: options.method,
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    let code = "server_error";
+    let message = "Gagal memproses perubahan data kelas.";
+    try {
+      const payload = (await res.json()) as {
+        error?: { code?: string; message?: string };
+      };
+      if (payload.error?.code) code = payload.error.code;
+      if (payload.error?.message) message = payload.error.message;
+    } catch {
+      // Abaikan parse error jika response non-JSON
+    }
+    throw new LecturerClientError(res.status, code, message);
+  }
+
+  return (await res.json()) as T;
+}
+
 export async function downloadLecturerCsv(
   kelasId: string,
   fallbackFileName = "evaluasi-kelas.csv"
