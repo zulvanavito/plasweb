@@ -2,6 +2,52 @@ import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
+export function PlasAppLogo({ className = "h-9 w-9", ...props }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 64 64"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+      {...props}
+    >
+      <rect
+        x="4"
+        y="4"
+        width="56"
+        height="56"
+        rx="14"
+        fill="#0F172A"
+        stroke="#1D4ED8"
+        strokeWidth="2.5"
+      />
+      <rect x="12" y="12" width="16" height="4" rx="2" fill="#1D4ED8" />
+      <circle cx="49" cy="14" r="2.5" fill="#1D4ED8" />
+      <path
+        d="M12 29L19 34L12 39"
+        stroke="#93C5FD"
+        strokeWidth="2.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M21 40H27"
+        stroke="#93C5FD"
+        strokeWidth="2.75"
+        strokeLinecap="round"
+      />
+      <path d="M31 26H41V29.2H37.6V43H34.4V29.2H31V26Z" fill="#F8FAFC" />
+      <path
+        d="M52 28.5C52 26.8 50.2 26 48 26C45.5 26 44 27.3 44 29.2C44 31.3 45.8 32.3 48.2 33.1C50.8 33.9 52.5 35.1 52.5 37.8C52.5 40.8 50.4 42.5 47.8 42.5C45.4 42.5 43.8 41.4 43.5 39.8"
+        stroke="#F8FAFC"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <rect x="12" y="49" width="40" height="3" rx="1.5" fill="#1D4ED8" />
+    </svg>
+  );
+}
+
 export function GoogleLogoVector({ className = "h-5 w-5", ...props }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className={className} {...props}>

@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   ActivityPulse,
-  CodeBrackets,
   LayoutDashboard,
   LogOut,
   MenuBars,
+  PlasAppLogo,
   UsersGroup,
   XClose,
 } from "@/components/ui/icons";
@@ -111,9 +111,7 @@ export default function DashboardLayout({
       <div>
         <div className="mb-6 flex items-center justify-between gap-2 px-2">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-[var(--plas-radius-md)] bg-[var(--plas-brand-tint)] text-[var(--plas-brand-primary)]">
-              <CodeBrackets className="h-5 w-5" />
-            </div>
+            <PlasAppLogo className="h-9 w-9 shrink-0" />
             <div>
               <p className="text-sm font-bold text-[var(--plas-text-primary)]">
                 PLAS-TypeScript
@@ -217,9 +215,12 @@ export default function DashboardLayout({
             <MenuBars className="h-5 w-5" />
             <span>Menu</span>
           </button>
-          <span className="font-mono text-xs font-semibold text-[var(--plas-brand-primary)]">
-            PLAS-TypeScript
-          </span>
+          <div className="flex items-center gap-2">
+            <PlasAppLogo className="h-6 w-6 shrink-0" />
+            <span className="font-mono text-xs font-semibold text-[var(--plas-brand-primary)]">
+              PLAS-TypeScript
+            </span>
+          </div>
         </header>
 
         <main className="mx-auto w-full max-w-[1280px] flex-1 p-4 sm:p-6 lg:p-8">

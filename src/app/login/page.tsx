@@ -4,12 +4,12 @@ import { Suspense, useCallback, useEffect, useState, type FormEvent } from "reac
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   AlertTriangle,
-  CodeBrackets,
   EyeOffOutline,
   EyeOutline,
   GoogleLogoVector,
   LockOutline,
   MailOutline,
+  PlasAppLogo,
 } from "@/components/ui/icons";
 import { lecturerFetch, LecturerClientError } from "@/lib/api/lecturer-client";
 import type { LecturerDashboardDto } from "@/lib/dto/lecturer-mappers";
@@ -146,9 +146,7 @@ function LoginFormContent() {
     <main className="flex min-h-screen items-center justify-center bg-[var(--plas-bg-canvas)] px-4 py-10">
       <div className="w-full max-w-[460px] rounded-[var(--plas-radius-xl)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-surface)] p-6 sm:p-8">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[var(--plas-radius-md)] bg-[var(--plas-brand-tint)] text-[var(--plas-brand-primary)]">
-            <CodeBrackets className="h-5 w-5" />
-          </div>
+          <PlasAppLogo className="h-10 w-10 shrink-0" />
           <div>
             <p className="font-mono text-[11px] font-semibold tracking-wider text-[var(--plas-brand-primary)] uppercase">
               CS LAB ENV // PORTAL DOSEN
