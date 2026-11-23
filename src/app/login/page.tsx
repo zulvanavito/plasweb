@@ -1,12 +1,20 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import Script from "next/script";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import {
   AlertTriangle,
   EyeOffOutline,
   EyeOutline,
-  GoogleLogoVector,
   LockOutline,
   MailOutline,
   PlasAppLogo,
@@ -14,6 +22,62 @@ import {
 import { lecturerFetch, LecturerClientError } from "@/lib/api/lecturer-client";
 import type { LecturerDashboardDto } from "@/lib/dto/lecturer-mappers";
 import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
+
+interface GisCredentialResponse {
+  credential?: string;
+}
+
+interface GisIdApi {
+  initialize: (config: {
+    client_id: string;
+    nonce?: string;
+    callback: (response: GisCredentialResponse) => void;
+  }) => void;
+  renderButton: (
+    parent: HTMLElement,
+    options: {
+      type?: "standard" | "icon";
+      theme?: "outline" | "filled_blue" | "filled_black";
+      size?: "large" | "medium" | "small";
+      text?: "signin_with" | "signup_with" | "continue_with" | "signin";
+      shape?: "rectangular" | "pill" | "circle" | "square";
+      logo_alignment?: "left" | "center";
+      width?: number;
+    }
+  ) => void;
+}
+
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: GisIdApi;
+      };
+    };
+  }
+}
+
+const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? "";
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function createNoncePair(): Promise<{
+  rawNonce: string;
+  hashedNonce: string;
+}> {
+  const randomBytes = new Uint8Array(16);
+  window.crypto.getRandomValues(randomBytes);
+  const rawNonce = toHex(randomBytes);
+
+  const encoded = new TextEncoder().encode(rawNonce);
+  const digest = await window.crypto.subtle.digest("SHA-256", encoded);
+  const hashedNonce = toHex(new Uint8Array(digest));
+
+  return { rawNonce, hashedNonce };
+}
 
 function LoginFormContent() {
   const router = useRouter();
@@ -25,6 +89,11 @@ function LoginFormContent() {
   const [submitting, setSubmitting] = useState(false);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [gisReady, setGisReady] = useState(false);
+  const [nonceVersion, setNonceVersion] = useState(0);
+
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const rawNonceRef = useRef<string | null>(null);
 
   const verifyLecturerAccess = useCallback(async () => {
     try {
@@ -62,6 +131,10 @@ function LoginFormContent() {
       );
     }
 
+    if (typeof window !== "undefined" && window.google?.accounts?.id) {
+      setGisReady(true);
+    }
+
     let mounted = true;
     const supabase = getSupabaseBrowserClient();
 
@@ -83,6 +156,94 @@ function LoginFormContent() {
       mounted = false;
     };
   }, [searchParams, verifyLecturerAccess]);
+
+  const handleGoogleCredentialResponse = useCallback(
+    async (response: GisCredentialResponse) => {
+      const idToken = response.credential;
+      const rawNonce = rawNonceRef.current;
+
+      if (!idToken || !rawNonce) {
+        setErrorCode("unauthorized");
+        setErrorMessage("Token autentikasi Google tidak valid. Silakan coba lagi.");
+        setNonceVersion((v) => v + 1);
+        return;
+      }
+
+      setErrorCode(null);
+      setErrorMessage(null);
+      setSubmitting(true);
+
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { error } = await supabase.auth.signInWithIdToken({
+          provider: "google",
+          token: idToken,
+          nonce: rawNonce,
+        });
+
+        if (error) {
+          setErrorCode("unauthorized");
+          setErrorMessage(
+            "Gagal masuk dengan Google. Pastikan akun Google Anda aktif dan coba lagi."
+          );
+          return;
+        }
+
+        await verifyLecturerAccess();
+      } catch {
+        setErrorCode("server_error");
+        setErrorMessage("Gagal menghubungkan layanan autentikasi Google.");
+      } finally {
+        setSubmitting(false);
+        setNonceVersion((v) => v + 1);
+      }
+    },
+    [verifyLecturerAccess]
+  );
+
+  useEffect(() => {
+    if (checkingSession || !gisReady || !GOOGLE_CLIENT_ID) return;
+    const container = googleButtonRef.current;
+    const gisId = window.google?.accounts?.id;
+    if (!container || !gisId) return;
+
+    let cancelled = false;
+
+    void createNoncePair()
+      .then(({ rawNonce, hashedNonce }) => {
+        if (cancelled) return;
+        rawNonceRef.current = rawNonce;
+        container.innerHTML = "";
+
+        const width = Math.min(394, Math.max(240, container.clientWidth || 380));
+        gisId.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          nonce: hashedNonce,
+          callback: (resp) => {
+            void handleGoogleCredentialResponse(resp);
+          },
+        });
+        gisId.renderButton(container, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          text: "signin_with",
+          shape: "rectangular",
+          logo_alignment: "left",
+          width,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setErrorCode("server_error");
+          setErrorMessage("Perangkat tidak mendukung kriptografi browser untuk Google Sign-In.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkingSession, gisReady, nonceVersion, handleGoogleCredentialResponse]);
 
   async function handleEmailLogin(e: FormEvent) {
     e.preventDefault();
@@ -119,31 +280,14 @@ function LoginFormContent() {
     }
   }
 
-  async function handleGoogleLogin() {
-    setErrorCode(null);
-    setErrorMessage(null);
-    setSubmitting(true);
-    try {
-      const supabase = getSupabaseBrowserClient();
-      const redirectTo = `${window.location.origin}/login`;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo },
-      });
-      if (error) {
-        setErrorCode("unauthorized");
-        setErrorMessage("Gagal memulai login dengan Google.");
-        setSubmitting(false);
-      }
-    } catch {
-      setErrorCode("server_error");
-      setErrorMessage("Gagal menghubungkan layanan Google Sign-In.");
-      setSubmitting(false);
-    }
-  }
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--plas-bg-canvas)] px-4 py-10">
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => setGisReady(true)}
+      />
+
       <div className="w-full max-w-[460px] rounded-[var(--plas-radius-xl)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-surface)] p-6 sm:p-8">
         <div className="mb-6 flex items-center gap-3">
           <PlasAppLogo className="h-10 w-10 shrink-0" />
@@ -158,8 +302,8 @@ function LoginFormContent() {
         </div>
 
         <p className="mb-6 text-sm text-[var(--plas-text-secondary)]">
-          Masuk menggunakan akun dosen terdaftar untuk memantau kelas, aktivitas
-          latihan, dan evaluasi mahasiswa secara Read-Only.
+          Masuk menggunakan akun dosen terdaftar pada PLAS-TypeScript untuk mengelola kelas serta
+          memantau aktivitas latihan dan evaluasi mahasiswa secara Read-Only.
         </p>
 
         {errorMessage ? (
@@ -263,17 +407,56 @@ function LoginFormContent() {
               <div className="h-px flex-1 bg-[var(--plas-border-subtle)]" />
             </div>
 
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={submitting}
-              className="inline-flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2.5 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-4 text-sm font-semibold text-[var(--plas-text-primary)] transition-colors hover:bg-[var(--plas-bg-subtle)] disabled:cursor-not-allowed disabled:bg-[var(--plas-disabled-bg)] disabled:text-[var(--plas-disabled-text)]"
-            >
-              <GoogleLogoVector className="h-5 w-5" />
-              <span>Masuk dengan Google</span>
-            </button>
+            {GOOGLE_CLIENT_ID ? (
+              <div className="space-y-2">
+                <div
+                  ref={googleButtonRef}
+                  aria-label="Masuk dengan Google"
+                  className={`flex min-h-[44px] w-full items-center justify-center ${
+                    submitting ? "pointer-events-none opacity-60" : ""
+                  }`}
+                >
+                  {!gisReady ? (
+                    <div className="h-10 w-full animate-pulse rounded-[var(--plas-radius-sm)] bg-[var(--plas-bg-subtle)]" />
+                  ) : null}
+                </div>
+              </div>
+            ) : (
+              <div
+                role="status"
+                className="rounded-[var(--plas-radius-md)] border border-[var(--plas-warning-border)] bg-[var(--plas-warning-bg)] p-3 text-xs leading-relaxed text-[var(--plas-warning-text)]"
+              >
+                Login Google Identity Services belum aktif karena variabel lingkungan{" "}
+                <code className="font-mono font-semibold">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>{" "}
+                belum dikonfigurasi. Gunakan email dan kata sandi dosen di atas atau lengkapi
+                konfigurasi Client ID Google Web.
+              </div>
+            )}
           </>
         )}
+
+        <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--plas-border-subtle)] pt-4 text-xs text-[var(--plas-text-muted)]">
+          <Link
+            href="/"
+            className="font-medium text-[var(--plas-text-secondary)] hover:text-[var(--plas-text-primary)]"
+          >
+            Beranda PLAS
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/privacy"
+              className="font-medium hover:text-[var(--plas-text-primary)]"
+            >
+              Kebijakan Privasi
+            </Link>
+            <Link
+              href="/terms"
+              className="font-medium hover:text-[var(--plas-text-primary)]"
+            >
+              Ketentuan Layanan
+            </Link>
+          </div>
+        </footer>
       </div>
     </main>
   );

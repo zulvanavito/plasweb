@@ -54,10 +54,18 @@
 - [x] UI Web Dosen (`W03`): tombol `Buat Kelas Baru`, `Edit`, `Hapus`, & `Keluarkan` beserta modal form `ClassFormModal` dan konfirmasi `ConfirmActionModal` pada `/classes` dan `/classes/[kelasId]`
 - [x] Pembaruan suite uji (`tests/stage1`, `stage2`, `stage4`, `stage5`) & sinkronisasi dokumen (`AGENTS.md`, `BACKLOG.md`, `CHANGELOG.md`, `README.md`, `walkthrough.md`)
 
+### Tahap 7 — Halaman Publik Google OAuth Branding Verification & GIS `signInWithIdToken`
+- [x] Menambahkan placeholder `NEXT_PUBLIC_GOOGLE_CLIENT_ID` di `.env.example` dan memperjelas branding **PLAS (PLAS-TypeScript)** pada metadata `src/app/layout.tsx`
+- [x] Mengganti `redirect("/login")` pada `src/app/page.tsx` menjadi halaman beranda publik resmi **PLAS (Programming Learning Assistant System) - PLAS-TypeScript** tanpa autentikasi, dengan CTA **Masuk Portal Dosen** (`/login`) serta tautan **Kebijakan Privasi** (`/privacy`) dan **Ketentuan Layanan** (`/terms`)
+- [x] Menambahkan halaman publik `src/app/privacy/page.tsx` (`/privacy`) dan `src/app/terms/page.tsx` (`/terms`) bergaya *Academic Code & Paper* (`DESIGN.md v1.1`) dengan pengungkapan akses scope Google (`openid email profile`), penyimpanan Supabase, larangan penjualan/pembagian data pihak ketiga, ketentuan akun dosen/mahasiswa, dan kontak `zavitoanwari@gmail.com`
+- [x] Mengubah Google Sign-In di `src/app/login/page.tsx` dari `signInWithOAuth` menjadi **Google Identity Services (GIS)** via `next/script` (`https://accounts.google.com/gsi/client`) + nonce Web Crypto (`SHA-256`) + `supabase.auth.signInWithIdToken`, beserta tautan `/`, `/privacy`, `/terms` pada footer kartu login
+- [x] Menambahkan uji kontrak & hygiene di `tests/stage4-lecturer-api-and-csv.test.ts` serta verifikasi penuh (`42/42` test Vitest, `npm run typecheck`, `npm run lint`, dan isolated `next build`)
+
 ---
 
 ## Status Terakhir & Langkah Lanjutan (Handoff)
-- **Posisi terakhir:** Seluruh implementasi **Tahap 1 s.d. Tahap 6** selesai dan terverifikasi (`7` berkas / `41` test Vitest lulus, `npm run typecheck`, `npm run lint`, dan `npm run build` lulus). Migrasi SQL `001`–`008` terpasang di Supabase Dev.
+- **Posisi terakhir:** Seluruh implementasi **Tahap 1 s.d. Tahap 7** selesai dan terverifikasi (`7` berkas / `42` test Vitest lulus, `npm run typecheck`, `npm run lint`, dan `npm run build` terisolasi lulus). Migrasi SQL `001`–`008` terpasang di Supabase Dev.
 - **Catatan operasional:**
+  - Pastikan `NEXT_PUBLIC_GOOGLE_CLIENT_ID` terisi di environment produksi/lokal dan Client ID Google Web tersebut terdaftar di pengaturan Google provider Supabase Auth agar tombol GIS `signInWithIdToken` aktif pada `/login`.
   - Bila menjalankan `npm run db:regress` (`DBT-01`–`DBT-30`) di masa depan, jalankan **hanya** pada scratch PostgreSQL DB terpisah (**jangan** jalankan pada Supabase Dev karena `scripts/regress.mjs` menghapus schema `public`).
   - Lanjutkan sinkronisasi di sisi aplikasi mobile (`plasmobile`) menggunakan prompt penyesuaian `isClassLocked` bila diperlukan agar UI mobile selaras penuh untuk skenario `kelas == null && preTestSubmitted == true`.

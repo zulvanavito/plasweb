@@ -26,9 +26,10 @@ Seluruh pertukaran data aplikasi mobile (`plasmobile`) maupun web dosen melewati
   - `GET /api/lecturer/evaluations/[mahasiswaId]` (Read-Only)
   - `GET /api/lecturer/evaluations/export` (ekspor CSV aman Read-Only)
 
-### 2. Web Dashboard Dosen (`W01`-`W06`)
+### 2. Web Dashboard Dosen (`W01`-`W06`) & Halaman Publik OAuth
 Antarmuka Light Mode (*Academic Code & Paper*) tanpa pengelolaan materi/soal/nilai dan tanpa asisten AI di web (analitik & tinjauan tetap Read-Only, sedangkan **Data Kelas** mendukung CRUD kelas dan mengeluarkan mahasiswa):
-- **`/login` (`W01`):** Login Email + Kata Sandi dan Google Sign-In via Supabase Auth (tanpa tab pendaftaran), menolak akun non-dosen dengan pesan aman `403 forbidden`.
+- **`/` (Beranda Publik), `/privacy`, & `/terms`:** Halaman publik resmi **PLAS (Programming Learning Assistant System) - PLAS-TypeScript** untuk verifikasi Google OAuth Branding, berisi informasi ekosistem mobile AI Socratic 3-level & portal dosen, Kebijakan Privasi (`openid email profile`, penyimpanan Supabase, non-komersial), serta Ketentuan Layanan (`zavitoanwari@gmail.com`).
+- **`/login` (`W01`):** Login Email + Kata Sandi dan Google Sign-In via **Google Identity Services (GIS) + `signInWithIdToken`** (dengan nonce `SHA-256` Web Crypto, tanpa tab pendaftaran), menolak akun non-dosen dengan pesan aman `403 forbidden`.
 - **`/dashboard` (`W02`):** 4 kartu KPI, grafik SVG distribusi status latihan, perbandingan Pre-Test vs Post-Test berpasangan, tren aktivitas harian (`Asia/Makassar` / `WITA`), serta daftar aktivitas terbaru.
 - **`/classes` & `/classes/[kelasId]` (`W03`):** Daftar kelas ampuan dosen, pencarian/filter tahun akademik & semester, **Buat / Edit / Hapus Kelas**, daftar mahasiswa per kelas, aksi **Keluarkan Mahasiswa dari Kelas**, serta unduh CSV.
 - **`/activities` (`W04`) & Modal Tinjauan (`W05`/`W06`):** Tab riwayat latihan & evaluasi Pre/Post beserta selisih, distribusi Materi 01-07, rincian jawaban mahasiswa + kunci jawaban Read-Only dosen, serta keterangan metode evaluasi FIB (`Case-insensitive + Trim + Levenshtein Similarity >= 70%`).
@@ -65,7 +66,10 @@ plasweb/
 │   ├── instrumentation.ts              # Rekonsiliasi AI PENDING > 5 menit (Node runtime)
 │   ├── app/
 │   │   ├── (dashboard)/                # App Shell & halaman W02-W04 (/dashboard, /classes, /activities)
-│   │   ├── login/page.tsx              # Halaman masuk dosen W01
+│   │   ├── page.tsx                    # Beranda publik resmi PLAS-TypeScript (OAuth Home Page)
+│   │   ├── privacy/page.tsx            # Halaman publik Kebijakan Privasi (/privacy)
+│   │   ├── terms/page.tsx              # Halaman publik Ketentuan Layanan (/terms)
+│   │   ├── login/page.tsx              # Halaman masuk dosen W01 (Email + GIS signInWithIdToken)
 │   │   └── api/                        # 22 route mobile + 9 route dosen (/api/lecturer/*)
 │   ├── components/
 │   │   ├── charts/                     # Grafik SVG analitik dosen
@@ -112,6 +116,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 # Opsional bila project masih memakai HS256 legacy; kosongkan jika memakai ECC P-256 JWKS
 SUPABASE_JWT_SECRET=
+# Google Identity Services (Web Client ID untuk tombol Google Sign-In di /login)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
 
 # AI Learning Assistant (AI_PROVIDER: gemini | groq | mock)
 AI_PROVIDER=gemini
