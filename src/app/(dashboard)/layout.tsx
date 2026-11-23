@@ -96,10 +96,23 @@ export default function DashboardLayout({
   if (!authReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--plas-bg-canvas)] px-4">
-        <div className="w-full max-w-sm rounded-[var(--plas-radius-lg)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-surface)] p-6 text-center">
-          <div className="mx-auto mb-3 h-10 w-10 animate-pulse rounded-[var(--plas-radius-md)] bg-[var(--plas-brand-tint)]" />
-          <p className="text-sm font-medium text-[var(--plas-text-muted)]">
-            Memuat ruang kerja dosen...
+        <div
+          role="status"
+          aria-live="polite"
+          className="w-full max-w-sm rounded-[var(--plas-radius-lg)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-surface)] p-6 text-center"
+        >
+          <div className="relative mx-auto mb-4 flex h-14 w-14 items-center justify-center">
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 animate-spin rounded-full border-[3px] border-[var(--plas-brand-tint)] border-t-[var(--plas-brand-primary)]"
+            />
+            <PlasAppLogo className="h-9 w-9" />
+          </div>
+          <p className="text-sm font-bold text-[var(--plas-text-primary)]">
+            PLAS-TypeScript
+          </p>
+          <p className="mt-1 text-xs font-medium text-[var(--plas-text-muted)]">
+            Memverifikasi sesi &amp; memuat ruang kerja dosen...
           </p>
         </div>
       </div>

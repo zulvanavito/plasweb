@@ -170,5 +170,5 @@ AI_PENDING_TIMEOUT_MINUTES=5
 - `tests/stage2-student-api-contracts.test.ts` — Kontrak 15 endpoint mahasiswa (§4.1-§4.3, §4.6) & anti-bocor kunci jawaban.
 - `tests/stage3-tests-and-ai-contracts.test.ts` — Kontrak 7 endpoint tes linear (§4.4), AI Socratic (§4.5), serta unit test `GroqAiProvider`.
 - `tests/stage3-whitebox-basis-path.test.ts` — Uji White Box Basis Path (`P14`) evaluator FIB/MC, validator payload, & guardrail AI.
-- `tests/stage4-lecturer-api-and-csv.test.ts` — Kontrak endpoint dosen Read-Only (§5) + CRUD kelas & keluarkan mahasiswa, sanitasi CSV, aturan `NULL != 0`, & kebersihan teks UI.
+- `tests/stage4-lecturer-api-and-csv.test.ts` — Kontrak endpoint dosen Read-Only (§5) + CRUD kelas & keluarkan mahasiswa, sanitasi CSV, aturan `NULL != 0`, kebersihan teks UI, serta kontrak halaman publik OAuth (`/`, `/privacy`, `/terms`) & GIS `signInWithIdToken` di `/login`.
 - `tests/stage5-security-audit.test.ts` — Audit keamanan statis `SEC-01`-`SEC-14` (`plas_api`, nihil `service_role` di `src/`, 31/31 route ber-JWT, guard `instrumentation.ts`).
