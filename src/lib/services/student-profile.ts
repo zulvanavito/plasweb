@@ -67,13 +67,15 @@ export async function getStudentProfile(
        k.tahun_akademik,
        k.semester,
        d.nama AS dosen_nama,
-       EXISTS (
-         SELECT 1
-         FROM public.test_attempt ta
-         JOIN public.test t ON t.test_id = ta.test_id
-         WHERE ta.mahasiswa_id = m.mahasiswa_id
-           AND t.test_type = 'PRE'
-           AND ta.status = 'SUBMITTED'
+       (
+         m.kelas_id IS NOT NULL AND EXISTS (
+           SELECT 1
+           FROM public.test_attempt ta
+           JOIN public.test t ON t.test_id = ta.test_id
+           WHERE ta.mahasiswa_id = m.mahasiswa_id
+             AND t.test_type = 'PRE'
+             AND ta.status = 'SUBMITTED'
+         )
        ) AS pre_test_submitted,
        GREATEST(
          0,

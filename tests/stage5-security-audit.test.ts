@@ -49,7 +49,7 @@ describe("Tahap 5 — Audit Keamanan SEC-01 s.d. SEC-14 & Runtime Hygiene", () =
     }
   });
 
-  it("seluruh 30 file route API memerlukan autentikasi JWT (SEC-05) dan 8 route dosen strictly GET-only (SEC-09)", () => {
+  it("seluruh 31 file route API memerlukan autentikasi JWT (SEC-05), analitik dosen Read-Only, dan mutasi dosen terbatas pada manajemen kelas", () => {
     const apiDir = path.resolve(process.cwd(), "src/app/api");
     const routeFiles = walkFiles(apiDir, (file) => path.basename(file) === "route.ts");
 
@@ -60,9 +60,9 @@ describe("Tahap 5 — Audit Keamanan SEC-01 s.d. SEC-14 & Runtime Hygiene", () =
       (file) => !file.includes(`${path.sep}lecturer${path.sep}`)
     );
 
-    expect(lecturerRoutes).toHaveLength(8);
+    expect(lecturerRoutes).toHaveLength(9);
     expect(mobileRoutes).toHaveLength(22);
-    expect(routeFiles).toHaveLength(30);
+    expect(routeFiles).toHaveLength(31);
 
     for (const file of routeFiles) {
       const content = fs.readFileSync(file, "utf8");
@@ -72,12 +72,26 @@ describe("Tahap 5 — Audit Keamanan SEC-01 s.d. SEC-14 & Runtime Hygiene", () =
       expect(hasAuthGuard, `Route tanpa guard JWT di ${file}`).toBe(true);
     }
 
-    for (const file of lecturerRoutes) {
+    const classMutationSuffixes = [
+      path.join("lecturer", "classes", "route.ts"),
+      path.join("lecturer", "classes", "[kelasId]", "route.ts"),
+      path.join("lecturer", "classes", "[kelasId]", "students", "[mahasiswaId]", "route.ts"),
+    ];
+    const isClassRoute = (file: string) =>
+      classMutationSuffixes.some((suffix) => file.endsWith(suffix));
+
+    const lecturerAnalyticsRoutes = lecturerRoutes.filter((f) => !isClassRoute(f));
+    const lecturerClassRoutes = lecturerRoutes.filter(isClassRoute);
+
+    expect(lecturerAnalyticsRoutes).toHaveLength(6);
+    expect(lecturerClassRoutes).toHaveLength(3);
+
+    for (const file of lecturerAnalyticsRoutes) {
       const content = fs.readFileSync(file, "utf8");
-      expect(content, `Route dosen harus punya GET di ${file}`).toMatch(
+      expect(content, `Route analitik dosen harus punya GET di ${file}`).toMatch(
         /export\s+async\s+function\s+GET\s*\(/
       );
-      expect(content, `Dilarang POST/PATCH/PUT/DELETE di ${file}`).not.toMatch(
+      expect(content, `Dilarang POST/PATCH/PUT/DELETE pada analitik dosen di ${file}`).not.toMatch(
         /export\s+(?:async\s+)?function\s+(?:POST|PATCH|PUT|DELETE)\s*\(/
       );
     }
@@ -92,12 +106,13 @@ describe("Tahap 5 — Audit Keamanan SEC-01 s.d. SEC-14 & Runtime Hygiene", () =
     expect(poolSrc).toContain("set_config('request.jwt.claims'");
   });
 
-  it("klien dosen hanya memakai GET (Read-Only) dan modal mendukung tombol Escape", () => {
+  it("klien dosen membatasi mutasi melalui lecturerMutate (POST|PATCH|DELETE) dan modal mendukung tombol Escape", () => {
     const clientPath = path.resolve(process.cwd(), "src/lib/api/lecturer-client.ts");
     const clientSrc = fs.readFileSync(clientPath, "utf8");
 
     expect(clientSrc).toContain('method: "GET"');
-    expect(clientSrc).not.toMatch(/method:\s*["'](?:POST|PATCH|PUT|DELETE)["']/);
+    expect(clientSrc).toContain("export async function lecturerMutate");
+    expect(clientSrc).not.toMatch(/method:\s*["']PUT["']/);
 
     const statesPath = path.resolve(process.cwd(), "src/components/ui/states.tsx");
     const statesSrc = fs.readFileSync(statesPath, "utf8");

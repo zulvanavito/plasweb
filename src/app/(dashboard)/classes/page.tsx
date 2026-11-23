@@ -3,15 +3,29 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ClassFormModal,
+  ConfirmActionModal,
+} from "@/components/lecturer/class-form-modal";
+import {
   ChevronRight,
   CodeBrackets,
+  PencilSquare,
+  PlusIcon,
   SearchMagnifier,
+  TrashCan,
   UsersGroup,
 } from "@/components/ui/icons";
 import { EmptyState } from "@/components/ui/owl-mascot";
 import { ErrorBanner, SkeletonBlock } from "@/components/ui/states";
-import { lecturerFetch, LecturerClientError } from "@/lib/api/lecturer-client";
-import type { LecturerClassesResponseDto } from "@/lib/dto/lecturer-mappers";
+import {
+  lecturerFetch,
+  lecturerMutate,
+  LecturerClientError,
+} from "@/lib/api/lecturer-client";
+import type {
+  LecturerClassesResponseDto,
+  LecturerClassSummaryDto,
+} from "@/lib/dto/lecturer-mappers";
 
 export default function ClassesPage() {
   const [search, setSearch] = useState("");
@@ -20,6 +34,11 @@ export default function ClassesPage() {
   const [data, setData] = useState<LecturerClassesResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingClass, setEditingClass] =
+    useState<LecturerClassSummaryDto | null>(null);
+  const [deletingClass, setDeletingClass] =
+    useState<LecturerClassSummaryDto | null>(null);
 
   const loadClasses = useCallback(async () => {
     setLoading(true);
@@ -52,13 +71,27 @@ export default function ClassesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="font-mono text-[11px] font-semibold tracking-wider text-[var(--plas-brand-primary)] uppercase">
-          READ-ONLY // DATA KELAS
-        </p>
-        <h1 className="mt-1 text-2xl font-bold text-[var(--plas-text-primary)]">
-          Data Kelas Diampu
-        </h1>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="font-mono text-[11px] font-semibold tracking-wider text-[var(--plas-brand-primary)] uppercase">
+            MANAJEMEN // DATA KELAS
+          </p>
+          <h1 className="mt-1 text-2xl font-bold text-[var(--plas-text-primary)]">
+            Data Kelas Diampu
+          </h1>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            setEditingClass(null);
+            setFormOpen(true);
+          }}
+          className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-[var(--plas-radius-md)] bg-[var(--plas-brand-primary)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--plas-brand-hover)]"
+        >
+          <PlusIcon className="h-4 w-4" />
+          <span>Buat Kelas Baru</span>
+        </button>
       </div>
 
       {error ? (
@@ -173,11 +206,11 @@ export default function ClassesPage() {
           {data.items.length === 0 ? (
             <EmptyState
               title="Belum ada kelas sesuai filter"
-              description="Ubah kata kunci pencarian atau filter tahun akademik/semester untuk melihat daftar kelas."
+              description="Buat kelas baru atau ubah kata kunci pencarian dan filter tahun akademik/semester untuk melihat daftar kelas."
             />
           ) : (
             <>
-              {/* Tabel Desktop Read-Only */}
+              {/* Tabel Desktop */}
               <div className="hidden overflow-x-auto rounded-[var(--plas-radius-lg)] border border-[var(--plas-border-divider)] bg-[var(--plas-bg-surface)] md:block">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b border-[var(--plas-border-subtle)] bg-[var(--plas-bg-subtle)] text-xs font-semibold text-[var(--plas-text-muted)]">
@@ -212,13 +245,36 @@ export default function ClassesPage() {
                           {cls.student_count}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Link
-                            href={`/classes/${cls.kelas_id}`}
-                            className="inline-flex min-h-[44px] items-center gap-1 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-xs font-semibold text-[var(--plas-text-primary)] transition-colors hover:bg-[var(--plas-bg-subtle)]"
-                          >
-                            <span>Detail Kelas</span>
-                            <ChevronRight className="h-4 w-4" />
-                          </Link>
+                          <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingClass(cls);
+                                setFormOpen(true);
+                              }}
+                              aria-label={`Edit kelas ${cls.kode}`}
+                              className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-xs font-semibold text-[var(--plas-text-primary)] transition-colors hover:bg-[var(--plas-bg-subtle)]"
+                            >
+                              <PencilSquare className="h-4 w-4" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingClass(cls)}
+                              aria-label={`Hapus kelas ${cls.kode}`}
+                              className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-[var(--plas-radius-md)] border border-[var(--plas-error-border)] bg-[var(--plas-error-bg)] px-3 text-xs font-semibold text-[var(--plas-error-text)] transition-opacity hover:opacity-90"
+                            >
+                              <TrashCan className="h-4 w-4" />
+                              <span>Hapus</span>
+                            </button>
+                            <Link
+                              href={`/classes/${cls.kelas_id}`}
+                              className="inline-flex min-h-[44px] items-center gap-1 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-xs font-semibold text-[var(--plas-text-primary)] transition-colors hover:bg-[var(--plas-bg-subtle)]"
+                            >
+                              <span>Detail Kelas</span>
+                              <ChevronRight className="h-4 w-4" />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -249,9 +305,30 @@ export default function ClassesPage() {
                     <p className="mt-1 text-xs text-[var(--plas-text-muted)]">
                       {cls.tahun_akademik} | Semester {cls.semester}
                     </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingClass(cls);
+                          setFormOpen(true);
+                        }}
+                        className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-xs font-semibold text-[var(--plas-text-primary)]"
+                      >
+                        <PencilSquare className="h-4 w-4" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingClass(cls)}
+                        className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-1.5 rounded-[var(--plas-radius-md)] border border-[var(--plas-error-border)] bg-[var(--plas-error-bg)] px-3 text-xs font-semibold text-[var(--plas-error-text)]"
+                      >
+                        <TrashCan className="h-4 w-4" />
+                        <span>Hapus</span>
+                      </button>
+                    </div>
                     <Link
                       href={`/classes/${cls.kelas_id}`}
-                      className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-1 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-sm font-semibold text-[var(--plas-text-primary)]"
+                      className="mt-2 inline-flex min-h-[44px] w-full items-center justify-center gap-1 rounded-[var(--plas-radius-md)] border border-[var(--plas-border-interactive)] bg-white px-3 text-sm font-semibold text-[var(--plas-text-primary)]"
                     >
                       <span>Buka Detail Kelas</span>
                       <ChevronRight className="h-4 w-4" />
@@ -263,6 +340,47 @@ export default function ClassesPage() {
           )}
         </>
       ) : null}
+
+      <ClassFormModal
+        open={formOpen}
+        mode={editingClass ? "edit" : "create"}
+        initialClass={editingClass}
+        onClose={() => {
+          setFormOpen(false);
+          setEditingClass(null);
+        }}
+        onSaved={() => {
+          setFormOpen(false);
+          setEditingClass(null);
+          void loadClasses();
+        }}
+      />
+
+      <ConfirmActionModal
+        open={deletingClass !== null}
+        title={
+          deletingClass
+            ? `Hapus Kelas ${deletingClass.kode}?`
+            : "Hapus Kelas?"
+        }
+        description={
+          deletingClass
+            ? `Kelas "${deletingClass.nama}" (${deletingClass.student_count} mahasiswa) akan dihapus. Mahasiswa yang masih tergabung akan otomatis menjadi Pengguna Umum dan seluruh hasil Pre-Test, Post-Test, serta latihan mereka tetap tersimpan dan langsung tersinkron saat memasukkan kode kelas baru.`
+            : ""
+        }
+        confirmLabel="Ya, Hapus Kelas"
+        confirmingLabel="Menghapus..."
+        onClose={() => setDeletingClass(null)}
+        onConfirm={async () => {
+          if (!deletingClass) return;
+          await lecturerMutate<{ deleted_kelas_id: string }>(
+            `/api/lecturer/classes/${encodeURIComponent(deletingClass.kelas_id)}`,
+            { method: "DELETE" }
+          );
+          setDeletingClass(null);
+          await loadClasses();
+        }}
+      />
     </div>
   );
 }

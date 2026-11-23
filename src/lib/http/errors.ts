@@ -9,6 +9,7 @@ export type ApiErrorCode =
   | "profile_not_found"
   | "idempotency_conflict"
   | "nim_conflict"
+  | "class_code_conflict"
   | "profile_conflict"
   | "class_locked"
   | "prerequisite_not_met"
@@ -42,6 +43,8 @@ export const ERROR_MESSAGES: Record<ApiErrorCode, string> = {
     "Permintaan gagal diproses karena konflik kunci idempotensi dengan data berbeda.",
   nim_conflict:
     "NIM tersebut telah terdaftar pada akun mahasiswa lain. Periksa kembali NIM Anda.",
+  class_code_conflict:
+    "Kode kelas tersebut sudah digunakan. Gunakan kode kelas lain yang unik.",
   profile_conflict:
     "Akun ini sudah terdaftar dengan peran lain dan tidak dapat digunakan sebagai akun mahasiswa.",
   class_locked:
@@ -159,6 +162,12 @@ export function mapDatabaseError(
       err.message?.includes("mahasiswa_auth_user_id_key")
     ) {
       return new ApiError(409, "profile_conflict");
+    }
+    if (
+      err.constraint === "kelas_kode_key" ||
+      err.message?.includes("kelas_kode_key")
+    ) {
+      return new ApiError(409, "class_code_conflict");
     }
     return new ApiError(409, "invalid_state_transition");
   }

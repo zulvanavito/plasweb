@@ -1,6 +1,6 @@
 # `plasweb` - PLAS-TypeScript Web Dashboard & Backend REST API
 
-`plasweb` adalah backend **Single-Entry REST API** dan **Web Dashboard Dosen Read-Only** untuk ekosistem **PLAS-TypeScript** (pembelajaran TypeScript berbasis Mobile, Web Analitik, dan AI Socratic Assistant).
+`plasweb` adalah backend **Single-Entry REST API** dan **Web Dashboard Dosen** untuk ekosistem **PLAS-TypeScript** (pembelajaran TypeScript berbasis Mobile, Web Analitik, dan AI Socratic Assistant).
 
 Aplikasi ini dibangun menggunakan **Next.js 15 App Router**, **React 19**, **TypeScript (`strict`)**, **Tailwind CSS v4**, dan driver **`pg` (`node-postgres` murni tanpa ORM)** yang terhubung ke **Supabase PostgreSQL 16**.
 
@@ -15,21 +15,22 @@ Seluruh pertukaran data aplikasi mobile (`plasmobile`) maupun web dosen melewati
 - **Progress & Log Aktivitas:** `GET /api/progress`, `GET /api/activities`.
 - **Tes Linear (Pre-Test & Post-Test):** `GET /api/tests`, `POST /api/tests/[testId]/attempts`, `POST /api/test-attempts/[attemptId]/questions/[sequence]/start`, `POST /api/test-attempts/[attemptId]/questions/[sequence]/answers`, `GET /api/test-attempts/[attemptId]/resume`, `POST /api/test-attempts/[attemptId]/submit`, `GET /api/test-attempts/[attemptId]`.
 - **AI Learning Assistant (Socratic 3-Level):** `GET /api/ai/quota`, `POST /api/ai/ask`.
-- **Endpoint Dosen Read-Only (`GET`-only):**
-  - `GET /api/lecturer/dashboard`
-  - `GET /api/lecturer/classes`
-  - `GET /api/lecturer/classes/[kelasId]`
-  - `GET /api/lecturer/activities`
-  - `GET /api/lecturer/activities/[attemptId]`
-  - `GET /api/lecturer/evaluations`
-  - `GET /api/lecturer/evaluations/[mahasiswaId]`
-  - `GET /api/lecturer/evaluations/export` (ekspor CSV aman)
+- **Endpoint Dosen (`/api/lecturer/*`):**
+  - `GET /api/lecturer/dashboard` (Read-Only)
+  - `GET /api/lecturer/classes` & `POST /api/lecturer/classes` (daftar & buat kelas baru)
+  - `GET /api/lecturer/classes/[kelasId]`, `PATCH /api/lecturer/classes/[kelasId]`, & `DELETE /api/lecturer/classes/[kelasId]` (detail, edit, & hapus kelas)
+  - `DELETE /api/lecturer/classes/[kelasId]/students/[mahasiswaId]` (keluarkan mahasiswa dari kelas)
+  - `GET /api/lecturer/activities` (Read-Only)
+  - `GET /api/lecturer/activities/[attemptId]` (Read-Only)
+  - `GET /api/lecturer/evaluations` (Read-Only)
+  - `GET /api/lecturer/evaluations/[mahasiswaId]` (Read-Only)
+  - `GET /api/lecturer/evaluations/export` (ekspor CSV aman Read-Only)
 
-### 2. Web Dashboard Dosen Read-Only (`W01`-`W06`)
-Antarmuka Light Mode (*Academic Code & Paper*) tanpa operasi mutasi (CRUD) dan tanpa asisten AI di web:
+### 2. Web Dashboard Dosen (`W01`-`W06`)
+Antarmuka Light Mode (*Academic Code & Paper*) tanpa pengelolaan materi/soal/nilai dan tanpa asisten AI di web (analitik & tinjauan tetap Read-Only, sedangkan **Data Kelas** mendukung CRUD kelas dan mengeluarkan mahasiswa):
 - **`/login` (`W01`):** Login Email + Kata Sandi dan Google Sign-In via Supabase Auth (tanpa tab pendaftaran), menolak akun non-dosen dengan pesan aman `403 forbidden`.
 - **`/dashboard` (`W02`):** 4 kartu KPI, grafik SVG distribusi status latihan, perbandingan Pre-Test vs Post-Test berpasangan, tren aktivitas harian (`Asia/Makassar` / `WITA`), serta daftar aktivitas terbaru.
-- **`/classes` & `/classes/[kelasId]` (`W03`):** Daftar kelas ampuan dosen, pencarian/filter tahun akademik & semester, daftar mahasiswa per kelas, serta unduh CSV.
+- **`/classes` & `/classes/[kelasId]` (`W03`):** Daftar kelas ampuan dosen, pencarian/filter tahun akademik & semester, **Buat / Edit / Hapus Kelas**, daftar mahasiswa per kelas, aksi **Keluarkan Mahasiswa dari Kelas**, serta unduh CSV.
 - **`/activities` (`W04`) & Modal Tinjauan (`W05`/`W06`):** Tab riwayat latihan & evaluasi Pre/Post beserta selisih, distribusi Materi 01-07, rincian jawaban mahasiswa + kunci jawaban Read-Only dosen, serta keterangan metode evaluasi FIB (`Case-insensitive + Trim + Levenshtein Similarity >= 70%`).
 
 ### 3. AI Socratic Learning Assistant (`AI_PROVIDER`)
@@ -65,14 +66,14 @@ plasweb/
 │   ├── app/
 │   │   ├── (dashboard)/                # App Shell & halaman W02-W04 (/dashboard, /classes, /activities)
 │   │   ├── login/page.tsx              # Halaman masuk dosen W01
-│   │   └── api/                        # 22 route mobile + 8 route dosen (/api/lecturer/*)
+│   │   └── api/                        # 22 route mobile + 9 route dosen (/api/lecturer/*)
 │   ├── components/
 │   │   ├── charts/                     # Grafik SVG analitik dosen
-│   │   ├── lecturer/                   # Modal tinjauan Read-Only W05 & W06
+│   │   ├── lecturer/                   # Modal tinjauan Read-Only W05/W06 & modal manajemen kelas
 │   │   └── ui/                         # Ikon SVG, maskot, badge status, code block, modal & error state
 │   └── lib/
 │       ├── ai/                         # Provider (Gemini/Groq/Mock), prompt Socratic, guardrail, reconciler
-│       ├── api/                        # Client fetch Read-Only & formatter WITA
+│       ├── api/                        # Client fetch, mutator kelas dosen, & formatter WITA
 │       ├── auth/                       # Verifikasi JWT Supabase (JWKS / HS256)
 │       ├── db/                         # Pool pg & transaksi SET LOCAL ROLE plas_api
 │       ├── domain/                     # Evaluator jawaban lokal (mirror FIB/MC)
@@ -81,7 +82,7 @@ plasweb/
 │       ├── services/                   # Layanan bisnis mahasiswa, dosen, & sanitasi CSV
 │       ├── supabase/                   # Browser Supabase client (khusus Auth)
 │       └── validation/                 # Skema Zod kanonis & parser query
-├── supabase/migrations/                # Migrasi SQL terurut 001 s.d. 007
+├── supabase/migrations/                # Migrasi SQL terurut 001 s.d. 008
 ├── scripts/                            # generate-seed.mjs, migrate.mjs, regress.mjs
 ├── tests/                              # 7 berkas suite uji Vitest (stage1 s.d. stage5)
 ├── .env.example                        # Template variabel lingkungan
@@ -131,7 +132,7 @@ AI_PENDING_TIMEOUT_MINUTES=5
    ```bash
    npm install
    ```
-2. Jalankan migrasi SQL (`001` s.d. `007`) ke database target menggunakan `DATABASE_ADMIN_URL`:
+2. Jalankan migrasi SQL (`001` s.d. `008`) ke database target menggunakan `DATABASE_ADMIN_URL`:
    ```bash
    npm run db:migrate
    ```
@@ -154,14 +155,14 @@ AI_PENDING_TIMEOUT_MINUTES=5
 | `npm test` | Menjalankan seluruh suite unit, contract, white-box, & audit keamanan (`vitest run`) |
 | `npm run typecheck` | Pemeriksaan tipe TypeScript ketat (`tsc --noEmit`) |
 | `npm run lint` | Pemeriksaan lint ESLint (`eslint .`) |
-| `npm run db:migrate` | Menjalankan migrasi SQL `supabase/migrations/001`–`007` |
+| `npm run db:migrate` | Menjalankan migrasi SQL `supabase/migrations/001`–`008` |
 | `npm run db:regress` | Uji regresi SQL `DBT-01`–`DBT-30` pada scratch DB terpisah |
 
 ### Cakupan Suite Uji (`tests/`)
-- `tests/stage1-sql-seed.test.ts` — Validasi struktur migrasi SQL `001`–`007` & seed resmi.
+- `tests/stage1-sql-seed.test.ts` — Validasi struktur migrasi SQL `001`–`008` & seed resmi.
 - `tests/stage2-core-runtime.test.ts` — Unit test runtime (JWKS/JWT, SQLSTATE mapping, SHA-256 `payload_hash`, validasi Zod).
 - `tests/stage2-student-api-contracts.test.ts` — Kontrak 15 endpoint mahasiswa (§4.1-§4.3, §4.6) & anti-bocor kunci jawaban.
 - `tests/stage3-tests-and-ai-contracts.test.ts` — Kontrak 7 endpoint tes linear (§4.4), AI Socratic (§4.5), serta unit test `GroqAiProvider`.
 - `tests/stage3-whitebox-basis-path.test.ts` — Uji White Box Basis Path (`P14`) evaluator FIB/MC, validator payload, & guardrail AI.
-- `tests/stage4-lecturer-api-and-csv.test.ts` — Kontrak 8 endpoint dosen Read-Only (§5), sanitasi CSV, aturan `NULL != 0`, & kebersihan teks UI.
-- `tests/stage5-security-audit.test.ts` — Audit keamanan statis `SEC-01`-`SEC-14` (`plas_api`, nihil `service_role` di `src/`, 30/30 route ber-JWT, guard `instrumentation.ts`).
+- `tests/stage4-lecturer-api-and-csv.test.ts` — Kontrak endpoint dosen Read-Only (§5) + CRUD kelas & keluarkan mahasiswa, sanitasi CSV, aturan `NULL != 0`, & kebersihan teks UI.
+- `tests/stage5-security-audit.test.ts` — Audit keamanan statis `SEC-01`-`SEC-14` (`plas_api`, nihil `service_role` di `src/`, 31/31 route ber-JWT, guard `instrumentation.ts`).

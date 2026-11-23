@@ -151,6 +151,7 @@ describe("Tahap 2 — Kontrak 15 Endpoint Mahasiswa & Anti-Kebocoran Kunci (P13)
 
     // POST /api/me -> 201 baru
     let profileExists = false;
+    let capturedProfileSql = "";
     activeDbHandler = (sql) => {
       if (sql.includes("SELECT nim FROM public.mahasiswa")) {
         return { rows: profileExists ? [{ nim: "2415051001" }] : [] };
@@ -160,6 +161,7 @@ describe("Tahap 2 — Kontrak 15 Endpoint Mahasiswa & Anti-Kebocoran Kunci (P13)
         return { rows: [{ mahasiswa_id: MHS_ID }] };
       }
       if (sql.includes("FROM public.mahasiswa m")) {
+        capturedProfileSql = sql;
         return { rows: [profileRow] };
       }
       return { rows: [] };
@@ -213,6 +215,10 @@ describe("Tahap 2 — Kontrak 15 Endpoint Mahasiswa & Anti-Kebocoran Kunci (P13)
     expect(
       ((await conflictNimRes.json()) as { error: { code: string } }).error.code
     ).toBe("nim_conflict");
+
+    // Pastikan GET /api/me mensyaratkan m.kelas_id IS NOT NULL untuk pre_test_submitted
+    // agar mahasiswa tanpa kelas (dikeluarkan/kelas dihapus) tetap bisa re-join kelas baru.
+    expect(capturedProfileSql).toContain("m.kelas_id IS NOT NULL AND EXISTS");
 
     // GET /api/classes
     activeDbHandler = () => ({
