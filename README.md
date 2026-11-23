@@ -28,9 +28,9 @@ Seluruh pertukaran data aplikasi mobile (`plasmobile`) maupun web dosen melewati
 
 ### 2. Web Dashboard Dosen (`W01`-`W06`) & Halaman Publik OAuth
 Antarmuka Light Mode (*Academic Code & Paper*) tanpa pengelolaan materi/soal/nilai dan tanpa asisten AI di web (analitik & tinjauan tetap Read-Only, sedangkan **Data Kelas** mendukung CRUD kelas dan mengeluarkan mahasiswa):
-- **`/` (Beranda Publik), `/privacy`, & `/terms`:** Halaman publik resmi **PLAS (Programming Learning Assistant System) - PLAS-TypeScript** untuk verifikasi Google OAuth Branding, berisi informasi ekosistem mobile AI Socratic 3-level & portal dosen, Kebijakan Privasi (`openid email profile`, penyimpanan Supabase, non-komersial), serta Ketentuan Layanan (`zavitoanwari@gmail.com`).
+- **`/` (Beranda Publik), `/panduan`, `/privacy`, & `/terms`:** Halaman publik resmi **PLAS (Programming Learning Assistant System) - PLAS-TypeScript** untuk verifikasi Google OAuth Branding dan dokumentasi dosen, berisi informasi ekosistem mobile AI Socratic 3-level, tombol unduh APK Android (`PLAS-TypeScript.apk`) & panduan instalasi mahasiswa, **Panduan Penggunaan Dosen** (`/panduan`), Kebijakan Privasi (`openid email profile`, penyimpanan Supabase, non-komersial), serta Ketentuan Layanan (`zavitoanwari@gmail.com`).
 - **`/login` (`W01`):** Login Email + Kata Sandi dan Google Sign-In via **Google Identity Services (GIS) + `signInWithIdToken`** (dengan nonce `SHA-256` Web Crypto, tanpa tab pendaftaran), menolak akun non-dosen dengan pesan aman `403 forbidden`.
-- **`/dashboard` (`W02`):** 4 kartu KPI, grafik SVG distribusi status latihan, perbandingan Pre-Test vs Post-Test berpasangan, tren aktivitas harian (`Asia/Makassar` / `WITA`), serta daftar aktivitas terbaru.
+- **`/dashboard` (`W02`):** 4 kartu KPI, grafik SVG distribusi status latihan, perbandingan Pre-Test vs Post-Test berpasangan, rata-rata skor per materi (`Materi 01-07`) dengan sorotan topik tersulit, ringkasan penggunaan AI Socratic anonim (`status = 'SUCCESS'`), progres kesiapan Post-Test (`DBR-15`), tren aktivitas harian (`Asia/Makassar` / `WITA`), serta daftar aktivitas terbaru dengan *quick drill-down* modal tinjauan.
 - **`/classes` & `/classes/[kelasId]` (`W03`):** Daftar kelas ampuan dosen, pencarian/filter tahun akademik & semester, **Buat / Edit / Hapus Kelas**, daftar mahasiswa per kelas, aksi **Keluarkan Mahasiswa dari Kelas**, serta unduh CSV.
 - **`/activities` (`W04`) & Modal Tinjauan (`W05`/`W06`):** Tab riwayat latihan & evaluasi Pre/Post beserta selisih, distribusi Materi 01-07, rincian jawaban mahasiswa + kunci jawaban Read-Only dosen, serta keterangan metode evaluasi FIB (`Case-insensitive + Trim + Levenshtein Similarity >= 70%`).
 
@@ -67,6 +67,7 @@ plasweb/
 │   ├── app/
 │   │   ├── (dashboard)/                # App Shell & halaman W02-W04 (/dashboard, /classes, /activities)
 │   │   ├── page.tsx                    # Beranda publik resmi PLAS-TypeScript (OAuth Home Page)
+│   │   ├── panduan/page.tsx            # Halaman publik Panduan Penggunaan Dosen (/panduan)
 │   │   ├── privacy/page.tsx            # Halaman publik Kebijakan Privasi (/privacy)
 │   │   ├── terms/page.tsx              # Halaman publik Ketentuan Layanan (/terms)
 │   │   ├── login/page.tsx              # Halaman masuk dosen W01 (Email + GIS signInWithIdToken)
@@ -74,7 +75,7 @@ plasweb/
 │   ├── components/
 │   │   ├── charts/                     # Grafik SVG analitik dosen
 │   │   ├── lecturer/                   # Modal tinjauan Read-Only W05/W06 & modal manajemen kelas
-│   │   └── ui/                         # Ikon SVG, maskot, badge status, code block, modal & error state
+│   │   └── ui/                         # Ikon SVG, InfoPopover, maskot, badge status, code block, modal & error state
 │   └── lib/
 │       ├── ai/                         # Provider (Gemini/Groq/Mock), prompt Socratic, guardrail, reconciler
 │       ├── api/                        # Client fetch, mutator kelas dosen, & formatter WITA
@@ -86,7 +87,7 @@ plasweb/
 │       ├── services/                   # Layanan bisnis mahasiswa, dosen, & sanitasi CSV
 │       ├── supabase/                   # Browser Supabase client (khusus Auth)
 │       └── validation/                 # Skema Zod kanonis & parser query
-├── supabase/migrations/                # Migrasi SQL terurut 001 s.d. 008
+├── supabase/migrations/                # Migrasi SQL terurut 001 s.d. 009
 ├── scripts/                            # generate-seed.mjs, migrate.mjs, regress.mjs
 ├── tests/                              # 7 berkas suite uji Vitest (stage1 s.d. stage5)
 ├── .env.example                        # Template variabel lingkungan
@@ -138,7 +139,7 @@ AI_PENDING_TIMEOUT_MINUTES=5
    ```bash
    npm install
    ```
-2. Jalankan migrasi SQL (`001` s.d. `008`) ke database target menggunakan `DATABASE_ADMIN_URL`:
+2. Jalankan migrasi SQL (`001` s.d. `009`) ke database target menggunakan `DATABASE_ADMIN_URL`:
    ```bash
    npm run db:migrate
    ```
@@ -161,14 +162,14 @@ AI_PENDING_TIMEOUT_MINUTES=5
 | `npm test` | Menjalankan seluruh suite unit, contract, white-box, & audit keamanan (`vitest run`) |
 | `npm run typecheck` | Pemeriksaan tipe TypeScript ketat (`tsc --noEmit`) |
 | `npm run lint` | Pemeriksaan lint ESLint (`eslint .`) |
-| `npm run db:migrate` | Menjalankan migrasi SQL `supabase/migrations/001`–`008` |
+| `npm run db:migrate` | Menjalankan migrasi SQL `supabase/migrations/001`–`009` |
 | `npm run db:regress` | Uji regresi SQL `DBT-01`–`DBT-30` pada scratch DB terpisah |
 
 ### Cakupan Suite Uji (`tests/`)
-- `tests/stage1-sql-seed.test.ts` — Validasi struktur migrasi SQL `001`–`008` & seed resmi.
+- `tests/stage1-sql-seed.test.ts` — Validasi struktur migrasi SQL `001`–`009` & seed resmi.
 - `tests/stage2-core-runtime.test.ts` — Unit test runtime (JWKS/JWT, SQLSTATE mapping, SHA-256 `payload_hash`, validasi Zod).
 - `tests/stage2-student-api-contracts.test.ts` — Kontrak 15 endpoint mahasiswa (§4.1-§4.3, §4.6) & anti-bocor kunci jawaban.
 - `tests/stage3-tests-and-ai-contracts.test.ts` — Kontrak 7 endpoint tes linear (§4.4), AI Socratic (§4.5), serta unit test `GroqAiProvider`.
 - `tests/stage3-whitebox-basis-path.test.ts` — Uji White Box Basis Path (`P14`) evaluator FIB/MC, validator payload, & guardrail AI.
-- `tests/stage4-lecturer-api-and-csv.test.ts` — Kontrak endpoint dosen Read-Only (§5) + CRUD kelas & keluarkan mahasiswa, sanitasi CSV, aturan `NULL != 0`, kebersihan teks UI, serta kontrak halaman publik OAuth (`/`, `/privacy`, `/terms`) & GIS `signInWithIdToken` di `/login`.
+- `tests/stage4-lecturer-api-and-csv.test.ts` — Kontrak endpoint dosen Read-Only (§5) + CRUD kelas & keluarkan mahasiswa, sanitasi CSV, aturan `NULL != 0`, kebersihan teks UI, kontrak halaman publik (`/`, `/panduan`, `/privacy`, `/terms`), GIS `signInWithIdToken` di `/login`, serta `<InfoPopover />`.
 - `tests/stage5-security-audit.test.ts` — Audit keamanan statis `SEC-01`-`SEC-14` (`plas_api`, nihil `service_role` di `src/`, 31/31 route ber-JWT, guard `instrumentation.ts`).

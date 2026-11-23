@@ -444,6 +444,12 @@ function LoginFormContent() {
           </Link>
           <div className="flex items-center gap-3">
             <Link
+              href="/panduan"
+              className="font-medium hover:text-[var(--plas-text-primary)]"
+            >
+              Panduan
+            </Link>
+            <Link
               href="/privacy"
               className="font-medium hover:text-[var(--plas-text-primary)]"
             >
