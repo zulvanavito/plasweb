@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  /* Surfaces & Neutrals */
+  --plas-bg-canvas: #F8FAFC;
+  --plas-bg-surface: #FFFFFF;
+  --plas-bg-subtle: #F1F5F9;
+  --plas-text-primary: #0F172A;
+  --plas-text-secondary: #334155;
+  --plas-text-muted: #475569;
+  --plas-border-subtle: #E2E8F0;
+  --plas-border-divider: #CBD5E1;
+  --plas-border-interactive: #64748B;
+
+  /* Disabled State (WCAG AA 6.15:1 text on bg) */
+  --plas-disabled-bg: #E2E8F0;
+  --plas-disabled-border: #CBD5E1;
+  --plas-disabled-text: #475569;
+
+  /* Brand & Focus */
+  --plas-brand-primary: #1D4ED8;
+  --plas-brand-hover: #1E40AF;
+  --plas-brand-tint: #EFF6FF;
+  --plas-focus-light: #1D4ED8;
+  --plas-focus-dark: #60A5FA;
+
+  /* IDE Code Block */
+  --plas-code-bg: #0F172A;
+  --plas-code-header: #1E293B;
+  --plas-code-text: #F8FAFC;
+  --plas-code-keyword: #93C5FD;
+  --plas-code-type: #5EEAD4;
+  --plas-code-string: #86EFAC;
+  --plas-code-number: #FCD34D;
+  --plas-code-comment: #94A3B8;
+
+  /* Semantics */
+  --plas-success-text: #166534;
+  --plas-success-bg: #F0FDF4;
+  --plas-success-border: #15803D;
+  --plas-error-text: #991B1B;
+  --plas-error-bg: #FEF2F2;
+  --plas-error-border: #DC2626;
+  --plas-warning-text: #92400E;
+  --plas-warning-bg: #FFFBEB;
+  --plas-warning-border: #B45309;
+
+  /* Charts */
+  --plas-chart-pre: #64748B;
+  --plas-chart-post: #1D4ED8;
+
+  /* Typography, Spacing, Radii, Shadows */
+  --plas-font-sans: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --plas-font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --plas-space-1: 4px;
+  --plas-space-2: 8px;
+  --plas-space-3: 12px;
+  --plas-space-4: 16px;
+  --plas-space-5: 20px;
+  --plas-space-6: 24px;
+  --plas-space-8: 32px;
+  --plas-radius-sm: 6px;
+  --plas-radius-md: 10px;
+  --plas-radius-lg: 14px;
+  --plas-radius-xl: 20px;
+  --plas-radius-full: 9999px;
+  --plas-shadow-floating: 0 8px 24px rgba(15, 23, 42, 0.14);
+  --plas-shadow-overlay: 0 16px 40px rgba(15, 23, 42, 0.18);
+}
+
+@theme inline {
+  --font-sans: var(--plas-font-sans);
+  --font-mono: var(--plas-font-mono);
+  --color-canvas: var(--plas-bg-canvas);
+  --color-surface: var(--plas-bg-surface);
+  --color-subtle: var(--plas-bg-subtle);
+  --color-ink: var(--plas-text-primary);
+  --color-ink-secondary: var(--plas-text-secondary);
+  --color-ink-muted: var(--plas-text-muted);
+  --color-brand: var(--plas-brand-primary);
+  --color-brand-hover: var(--plas-brand-hover);
+  --color-brand-tint: var(--plas-brand-tint);
+}
+
+html,
+body {
+  background-color: var(--plas-bg-canvas);
+  color: var(--plas-text-primary);
+  font-family: var(--plas-font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--plas-focus-light);
+  outline-offset: 2px;
+}
+
+.plas-dark-surface :focus-visible {
+  outline: 2px solid var(--plas-focus-dark);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
